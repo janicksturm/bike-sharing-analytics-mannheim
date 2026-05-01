@@ -19,7 +19,7 @@
                 attribution: "© OpenStreetMap contributors"
             }).addTo(map);
 
-            fetch("/data/geo/data.geojson")
+            fetch("/data/geo/data_latest.geojson")
                 .then(res => res.json())
                 .then(data => {
 
