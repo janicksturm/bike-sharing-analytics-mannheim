@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import geopandas as gpd
 
-GEO_DIR = "data/raw/geo"
+GEO_DIR = "data/geo"
 
 def convert_to_geojson(path, timestamp):
     os.makedirs(GEO_DIR, exist_ok=True)
