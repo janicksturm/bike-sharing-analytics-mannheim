@@ -3,3 +3,7 @@ pandas
 geopandas
 pyarrow
 fastparquet
+streamlit
+plotly
+folium
+streamlit-folium
