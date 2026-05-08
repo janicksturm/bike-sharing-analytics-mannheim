@@ -1,5 +1,7 @@
 # Spatial-Temporal Demand Modeling for Bike Sharing Systems
 
+> **Note:** This project is currently a work in progress.
+
 This project focuses on modeling and visualizing the spatial-temporal demand for bike-sharing systems, specifically focused on the NextBike network in Mannheim. It includes an automated data pipeline to collect system snapshots over time and an interactive dashboard to explore station status, occupancy, and distribution.
 
 ## Features
