@@ -54,3 +54,21 @@ To view the interactive dashboard, run the Streamlit app. This will start a loca
 ```bash
 streamlit run app.py
 ```
+
+### 3. Docker (Local Setup)
+
+The best way to run the application locally (both the pipeline and the dashboard) is using **Docker Compose**. This spins up two separate, isolated containers that share the `data/` directory.
+
+1. **Start both services**:
+   ```bash
+   docker-compose up -d --build
+   ```
+
+2. **Access the dashboard**:
+   The dashboard will be available at `http://localhost:8000`.
+   *(Meanwhile, the pipeline will automatically run in the background).*
+
+3. **Stop the services**:
+   ```bash
+   docker-compose down
+   ```
