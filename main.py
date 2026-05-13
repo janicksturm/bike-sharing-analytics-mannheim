@@ -1,11 +1,9 @@
 from script.pipe.fetch_data import download_file
-from script.pipe.data_utils import convert_to_geojson
 import time
 
 def run_pipeline():
     try:
-        parquet_path, timestamp = download_file()
-        convert_to_geojson(parquet_path, timestamp)
+        download_file()
     except Exception as e:
         print(f"Error: {e}")
 
