@@ -1,6 +1,5 @@
 requests
 pandas
-geopandas
 pyarrow
 fastparquet
 streamlit
