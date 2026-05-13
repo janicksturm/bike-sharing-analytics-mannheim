@@ -1,5 +1,5 @@
 import pandas as pd
-from models.utils import haversine
+from .utils import haversine
 
 RADIUS_METERS = 500
 
@@ -38,9 +38,17 @@ def build_station_distance_matrix(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def get_neighbor_stations(station_uid, distance_df, radius=RADIUS_METERS):
+def get_neighbor_stations(station_uid, distance_df, radius=RADIUS_METERS, top_n=None):
     """Returns a DataFrame of neighboring stations within a specified radius for a given station UID."""
 
-    neighbors = distance_df[(distance_df["source_uid"] == station_uid) & (distance_df["distance_meters"] <= radius)]
+    neighbors = distance_df[distance_df["source_uid"] == station_uid].copy()
 
-    return neighbors.sort_values("distance_meters")
+    if radius is not None:
+        neighbors = neighbors[neighbors["distance_meters"] <= radius]
+
+    neighbors = neighbors.sort_values("distance_meters")
+
+    if top_n is not None:
+        neighbors = neighbors.head(top_n)
+
+    return neighbors
