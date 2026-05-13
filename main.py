@@ -1,5 +1,5 @@
-from script.pipeline import download_file
-from script.parquet_converter import convert_to_geojson
+from script.pipe.fetch_data import download_file
+from script.pipe.data_utils import convert_to_geojson
 import time
 
 def run_pipeline():
