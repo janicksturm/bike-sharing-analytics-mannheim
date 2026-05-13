@@ -5,7 +5,7 @@ import folium
 from streamlit_folium import st_folium
 
 from script.view.view_utils import chart_layout
-from script.view.data_loader import load_all_snapshots, load_latest_geojson
+from script.models.preprocessing import load_all_snapshots
 
 PLOTLY_TEMPLATE = "plotly_dark"
 CHART_BG = "rgba(22,27,34,0)"
