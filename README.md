@@ -6,16 +6,19 @@ This project focuses on modeling and visualizing the spatial-temporal demand for
 
 ## Features
 
-- **Automated Data Pipeline**: A continuous background job (`main.py`) that fetches live snapshot data from the NextBike API every 30 minutes and stores it in optimized formats (Parquet/GeoJSON).
+- **Automated Data Pipeline**: A continuous background job (`main.py`) that fetches live snapshot data every 30 minutes and stores it in optimized format (Parquet).
 - **Interactive Dashboard**: A Streamlit-based web application (`app.py`) providing insights into the bike-sharing network.
 - **Geospatial Visualization**: Interactive maps built with Folium to visualize station locations, bike availability, and occupancy rates.
+- **Spatial Analytics**: A station distance matrix (`spatial_analytics.py`) enables nearest-neighbour queries — click any station on the map to highlight its 3 closest neighbours with distance lines.
+- **Fragment-based Interactivity**: Map click interactions are handled via `@st.fragment` so only the map panel re-renders, avoiding full-page reloads.
 - **KPI Monitoring**: Tracking of total bikes, available bikes, empty stations, and average occupancy across the network.
+- **Station Ranking**: Top-3 stations by bike count shown as a horizontal bar chart for quick capacity comparison.
 
 ## Tech Stack
 
 - **Python**
 - **Streamlit** (Dashboard UI)
-- **Pandas / GeoPandas** (Data manipulation & spatial analysis)
+- **Pandas** (Data manipulation)
 - **Folium / Streamlit-Folium** (Interactive maps)
 - **Plotly** (Charts and graphs)
 - **PyArrow / Fastparquet** (Efficient data storage)
