@@ -7,10 +7,13 @@ from streamlit_folium import st_folium
 from script.view.view_utils import chart_layout
 from script.models.preprocessing import load_all_snapshots
 from script.models.spatial_analytics import build_station_distance_matrix, get_neighbor_stations
+from script.services.recommendation_service import RecommendationService
 
 PLOTLY_TEMPLATE = "plotly_dark"
 CHART_BG = "rgba(22,27,34,0)"
 PAPER_BG = "rgba(22,27,34,0)"
+
+service = RecommendationService()
 
 # Page config
 st.set_page_config(
@@ -203,11 +206,26 @@ def map_and_neighbours():
     selected_uid = st.session_state.selected_uid
     neighbor_map  = {}
     neighbor_rows = None
+    recommendation_row = None
 
+    recommendation_uid = None
     if selected_uid is not None and selected_uid in df_selected["uid"].values:
         neighbor_rows = get_neighbor_stations(selected_uid, distance_matrix, radius=None, top_n=3)
+        recommendation_row = service.get_recommendations(selected_uid, neighbor_rows)
         for i, (_, nr) in enumerate(neighbor_rows.iterrows()):
             neighbor_map[int(nr["target_uid"])] = (i + 1, nr["distance_meters"])
+        if recommendation_row is not None:
+            rec_row = recommendation_row
+            if isinstance(rec_row, pd.DataFrame) and not rec_row.empty:
+                rec_row = rec_row.iloc[0]
+            for key in ("target_uid", "uid", "station_uid", "recommended_uid", "recommendation_uid", "id"):
+                if hasattr(rec_row, "get"):
+                    val = rec_row.get(key)
+                else:
+                    val = rec_row[key] if key in rec_row else None
+                if val is not None and pd.notna(val):
+                    recommendation_uid = int(val)
+                    break
 
     st.markdown('<div class="section-header">Station Distribution — click a station to highlight its 3 nearest neighbours</div>', unsafe_allow_html=True)
     map_col, dist_col = st.columns([3, 2], gap="medium")
@@ -248,11 +266,14 @@ def map_and_neighbours():
             occ   = row["occupancy_pct"]
             rentable = int(row["bikes_available_to_rent"]) if pd.notna(row["bikes_available_to_rent"]) else 0
 
-            is_selected  = uid == selected_uid
+            is_selected = uid == selected_uid
+            is_recommended = uid == recommendation_uid
 
             fill   = "#f85149" if bikes == 0 else ("#d29922" if bikes <= 2 else "#3fb950")
             if is_selected:
                 fill = "#ffffff"
+            elif is_recommended:
+                fill = "#45ecff"
             else:
                 border, radius, weight = "#21262d", 5, 1.2
 
