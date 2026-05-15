@@ -22,11 +22,17 @@ def best_possible_station(latest_station_data: pd.DataFrame, neighbor_stations: 
     if candidates.empty:
         return pd.DataFrame()
 
-    # recommendation score calculation based on bikes, empty rate, and distance
-    # explaination:
-    # - bikes: 0.5 because it's the most important factor for a user looking for an alternative station 
-    # - empty_rate: 0.3 because a station with a high empty rate is less likely to have bikes available, but it's not as critical as the number of bikes currently available
-    # - distance: 0.02 because while proximity is important, users may be willing to walk a bit further for a station with more bikes and a lower empty rate
+   
+    # Recommendation score combines multiple factors:
+    # - bike availability (higher = better)
+    # - historical reliability / empty rate (lower empty rate = better)
+    # - walking distance (closer = better)
+
+    # We use weights to control both:
+    # 1. the importance of each factor
+    # 2. the influence of different value ranges (e.g. distance is much larger than bike counts)
+
+    # This creates a trade-off between availability, reliability, and proximity.
     candidates["recommendation_score"] = (
         candidates["bikes"] * 0.5
         + (100 - candidates["empty_rate"]) * 0.3
