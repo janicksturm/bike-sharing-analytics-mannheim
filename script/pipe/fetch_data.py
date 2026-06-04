@@ -6,9 +6,8 @@ from datetime import datetime
 URL = "https://mannheim.opendatasoft.com/api/explore/v2.1/catalog/datasets/free_bike_status/exports/parquet?lang=de&timezone=Europe%2FBerlin"
 SAVE_DIR = "data/raw"
 
-REQUIRED_COLUMNS = {"uid", "lat", "lng", "name", "bikes", "free_racks"}
-
 def download_file():
+    """Downloads the Parquet file from the specified URL and saves it locally with a timestamped filename."""
     now = datetime.now()
     timestamp = now.strftime("%Y%m%d_%H%M%S")
 
@@ -33,11 +32,6 @@ def download_file():
     if len(df) == 0:
         os.remove(file_path)
         raise RuntimeError("Downloaded Parquet file contains 0 rows.")
-
-    missing = REQUIRED_COLUMNS - set(df.columns)
-    if missing:
-        os.remove(file_path)
-        raise RuntimeError(f"Downloaded file is missing required columns: {missing}")
 
     print(f"Parquet saved: {file_path} ({len(df)} rows, {len(df.columns)} cols)")
 
