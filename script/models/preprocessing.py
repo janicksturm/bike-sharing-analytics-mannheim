@@ -27,6 +27,7 @@ def load_all_snapshots() -> pd.DataFrame:
     # Sort by uid + time so that groupby-diff() produces correct deltas
     all_dfs = all_dfs.sort_values(["uid", "snapshot_time"]).reset_index(drop=True)
 
+    all_dfs = remove_columns(all_dfs)
     all_dfs = features(all_dfs)
 
     return all_dfs
@@ -53,6 +54,15 @@ def features(df: pd.DataFrame) -> pd.DataFrame:
 
     df["bike_delta"] = df.groupby("uid")["bikes"].diff()
 
+
     df["demand_score"] = -df["bike_delta"]
+
+    return df
+
+def remove_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Remove columns that are not needed for modeling."""
+    df = df.copy()
+
+    df = df.drop(["spot", "booked_bikes", "active_place", "terminal_type", "bike_numbers", "bike_types", "place_type", "bike", "rack_locks", "maintenance"], axis=1)
 
     return df
