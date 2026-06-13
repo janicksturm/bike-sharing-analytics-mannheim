@@ -1,0 +1,23 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# JS / Node (dashboard has its own Dockerfile)
+dashboard/node_modules/
+dashboard/dist/
+
+# Git
+.git/
+.gitignore
+
+# IDE / OS
+.vscode/
+.DS_Store
+*.swp
