@@ -1,6 +1,4 @@
 import time
-import threading
-import uvicorn
 
 from script.pipe.fetch_data import download_file
 
@@ -15,19 +13,5 @@ def pipeline_loop():
         run_pipeline()
         time.sleep(1800)
 
-def start_api():
-    uvicorn.run(
-        "script.api.app:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=False
-    )
-
 if __name__ == "__main__":
-    pipeline_thread = threading.Thread(
-        target=pipeline_loop,
-        daemon=True
-    )
-    pipeline_thread.start()
-
-    start_api()
+    pipeline_loop()

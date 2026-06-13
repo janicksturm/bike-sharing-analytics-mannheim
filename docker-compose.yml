@@ -1,14 +1,14 @@
 version: '3.8'
 
 services:
-  dashboard:
+  api:
     build: .
-    container_name: nextbike-dashboard
+    container_name: nextbike-api
     ports:
       - "8000:8000"
     volumes:
       - ./data:/app/data
-    command: ["python", "-m", "streamlit", "run", "app.py", "--server.port=8000", "--server.address=0.0.0.0"]
+    command: ["python", "-m", "uvicorn", "script.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
     restart: unless-stopped
 
   pipeline:
@@ -17,4 +17,11 @@ services:
     volumes:
       - ./data:/app/data
     command: ["python", "main.py"]
+    restart: unless-stopped
+
+  dashboard:
+    build: ./dashboard
+    container_name: nextbike-dashboard
+    ports:
+      - "3000:80"
     restart: unless-stopped
