@@ -1,7 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from script.services.preprocessing_service import PreProcessingService
 from script.services.kpi_service import KpiService
+from script.services.location_service import LocationService
+from script.services.neighbour_service import NeighbourService
 
 app = FastAPI()
 
@@ -37,3 +39,11 @@ def get_status():
         return status
     except ValueError as e:
         return {"error": str(e)}
+
+@app.get("/stations")
+def get_stations():
+    try:
+        service = LocationService(_get_data())
+        return {"stations": service.get_stations()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
