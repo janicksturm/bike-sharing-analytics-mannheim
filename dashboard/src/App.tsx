@@ -1,6 +1,8 @@
 import useFetch from "./hooks/useFetch";
 import Header from "./components/Header";
 import StatusCard from "./components/StatusCard";
+import StationMap from "./components/StationMap";
+import type { Station } from "./components/StationMap";
 import type { StatValue } from "./components/StatusCard";
 import "./App.css";
 
@@ -10,6 +12,10 @@ interface KpiSnapshot {
   available_to_rent: StatValue;
   empty_stations: StatValue;
   avg_occupancy: StatValue;
+}
+
+interface StationResponse {
+  stations: Station[];
 }
 
 function formatSnapshotTime(iso: string): string {
@@ -25,6 +31,7 @@ function formatSnapshotTime(iso: string): string {
 
 function App() {
   const [data] = useFetch<KpiSnapshot>("http://localhost:8000/status");
+  const [apiResponse] = useFetch<StationResponse>("http://localhost:8000/stations");
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -77,6 +84,16 @@ function App() {
                 />
               </>
             )}
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white">Station Distribution</h2>
+          </div>
+
+          <div className="w-full">
+            <StationMap stations={apiResponse?.stations || []} />
+          </div>
         </div>
       </main>
     </div>
