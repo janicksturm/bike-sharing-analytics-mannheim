@@ -50,6 +50,7 @@ def features(df: pd.DataFrame) -> pd.DataFrame:
     _capacity = df["total_capacity"].astype(float)
     df["occupancy_pct"] = (
         (df["bikes"] / _capacity.where(_capacity > 0) * 100)
+        .fillna(0)
         .round(1)
     )
 
