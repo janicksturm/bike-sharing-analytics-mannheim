@@ -30,6 +30,7 @@ class LocationService:
         df_cur["uid"] = df_cur["uid"].astype(int)
         df_cur["bikes"] = df_cur["bikes"].astype(int)
         df_cur["free_racks"] = df_cur["free_racks"].astype(int)
+        df_cur["occupancy_pct"] = df_cur["occupancy_pct"].fillna(0.0).round(1)
         df_cur["bikes_available_to_rent"] = (
             df_cur["bikes_available_to_rent"].fillna(0).astype(int)
         )
