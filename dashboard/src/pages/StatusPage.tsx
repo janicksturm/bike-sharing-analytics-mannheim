@@ -1,6 +1,7 @@
 import useFetch from "../hooks/useFetch";
 import StatusCard from "../components/StatusCard";
 import StationMap from "../components/StationMap";
+import StationRankingChart from "../components/StationRankingChart";
 import type { Station } from "../components/StationMap";
 import type { StatValue } from "../components/StatusCard";
 
@@ -89,6 +90,21 @@ function StatusPage() {
         <div className="w-full">
           <StationMap stations={apiResponse?.stations || []} />
         </div>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-white">Station Ranking</h2>
+        </div>
+
+        <StationRankingChart
+          stations={apiResponse?.stations || []}
+          getBarColor={(station) => {
+            if (station.bikes === 0) return "#ef4444";
+            if (station.bikes <= 2) return "#eab308";
+            return "#10b981";
+          }}
+        />
       </div>
     </main>
   );
