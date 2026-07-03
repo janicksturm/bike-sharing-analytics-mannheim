@@ -13,6 +13,11 @@ This project focuses on modeling and visualizing the spatial-temporal demand for
 - **KPI Monitoring**: Real-time tracking of total bikes, available-to-rent count, empty stations, and average occupancy — with snapshot-over-snapshot deltas.
 - **Station Ranking**: A horizontal bar chart ranking stations by bike count with color-coded availability indicators.
 
+### Screenshots
+
+![Dashboard Status Page](assets/status-page-screenshot.png)
+*Dashboard Status Page*
+
 ## Installation
 
 1. **Clone the repository**:
