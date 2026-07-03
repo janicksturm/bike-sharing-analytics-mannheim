@@ -13,24 +13,6 @@ This project focuses on modeling and visualizing the spatial-temporal demand for
 - **KPI Monitoring**: Real-time tracking of total bikes, available-to-rent count, empty stations, and average occupancy — with snapshot-over-snapshot deltas.
 - **Station Ranking**: A horizontal bar chart ranking stations by bike count with color-coded availability indicators.
 
-## Tech Stack
-
-### Backend (Python)
-
-- **FastAPI** — REST API with CORS support
-- **Pandas** — Data manipulation and KPI computation
-- **PyArrow / Fastparquet** — Efficient Parquet read/write
-- **Uvicorn** — ASGI server
-
-### Frontend (TypeScript)
-
-- **React 19** — Component-based UI
-- **Vite** — Dev server and build tooling
-- **React Router** — Client-side page routing
-- **Recharts** — Charts and data visualization
-- **Leaflet / React-Leaflet** — Interactive maps
-- **Tailwind CSS 4** — Utility-first styling
-
 ## Installation
 
 1. **Clone the repository**:
