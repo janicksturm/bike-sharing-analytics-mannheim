@@ -2,26 +2,34 @@
 
 > **Note:** This project is currently a work in progress.
 
-This project focuses on modeling and visualizing the spatial-temporal demand for bike-sharing systems, specifically focused on the NextBike network in Mannheim. It includes an automated data pipeline to collect system snapshots over time and an interactive dashboard to explore station status, occupancy, and distribution.
+This project focuses on modeling and visualizing the spatial-temporal demand for bike-sharing systems, specifically focused on the NextBike network in Mannheim. It combines an automated data pipeline, a REST API backend, and an interactive React dashboard to explore station status, occupancy, and distribution in real time.
 
 ## Features
 
-- **Automated Data Pipeline**: A continuous background job (`main.py`) that fetches live snapshot data every 30 minutes and stores it in optimized format (Parquet).
-- **Interactive Dashboard**: A Streamlit-based web application (`app.py`) providing insights into the bike-sharing network.
-- **Geospatial Visualization**: Interactive maps built with Folium to visualize station locations, bike availability, and occupancy rates.
-- **Spatial Analytics**: A station distance matrix (`spatial_analytics.py`) enables nearest-neighbour queries — click any station on the map to highlight its 3 closest neighbours with distance lines.
-- **Fragment-based Interactivity**: Map click interactions are handled via `@st.fragment` so only the map panel re-renders, avoiding full-page reloads.
-- **KPI Monitoring**: Tracking of total bikes, available bikes, empty stations, and average occupancy across the network.
-- **Station Ranking**: Top-3 stations by bike count shown as a horizontal bar chart for quick capacity comparison.
+- **Automated Data Pipeline**: A continuous background job that fetches live snapshot data every 30 minutes from the Mannheim Open Data portal
+- **REST API**: A FastAPI backend that serves KPI metrics and station data to the frontend via endpoints.
+- **Interactive Dashboard**: A React + TypeScript SPA with page-based routing (Status, Prediction) and a modern dark-themed UI.
+- **Geospatial Visualization**: Interactive Leaflet maps to visualize station locations, bike availability, and occupancy rates.
+- **KPI Monitoring**: Real-time tracking of total bikes, available-to-rent count, empty stations, and average occupancy — with snapshot-over-snapshot deltas.
+- **Station Ranking**: A horizontal bar chart ranking stations by bike count with color-coded availability indicators.
 
 ## Tech Stack
 
-- **Python**
-- **Streamlit** (Dashboard UI)
-- **Pandas** (Data manipulation)
-- **Folium / Streamlit-Folium** (Interactive maps)
-- **Plotly** (Charts and graphs)
-- **PyArrow / Fastparquet** (Efficient data storage)
+### Backend (Python)
+
+- **FastAPI** — REST API with CORS support
+- **Pandas** — Data manipulation and KPI computation
+- **PyArrow / Fastparquet** — Efficient Parquet read/write
+- **Uvicorn** — ASGI server
+
+### Frontend (TypeScript)
+
+- **React 19** — Component-based UI
+- **Vite** — Dev server and build tooling
+- **React Router** — Client-side page routing
+- **Recharts** — Charts and data visualization
+- **Leaflet / React-Leaflet** — Interactive maps
+- **Tailwind CSS 4** — Utility-first styling
 
 ## Installation
 
@@ -42,6 +50,12 @@ This project focuses on modeling and visualizing the spatial-temporal demand for
    pip install -r requirements.txt
    ```
 
+4. **Install frontend dependencies**:
+   ```bash
+   cd dashboard
+   npm install
+   ```
+
 ## Usage
 
 ### 1. Data Collection Pipeline
@@ -52,28 +66,42 @@ To start collecting data snapshots, run the main data pipeline script. This scri
 python main.py
 ```
 
-### 2. Dashboard
+### 2. API Server
 
-To view the interactive dashboard, run the Streamlit app. This will start a local web server and open the dashboard in your default browser.
+Start the FastAPI backend to serve data to the dashboard:
 
 ```bash
-streamlit run app.py
+uvicorn script.api.app:app --reload
 ```
 
-### 3. Docker (Local Setup)
+The API will be available at `http://localhost:8000`.
 
-The best way to run the application locally (both the pipeline and the dashboard) is using **Docker Compose**. This spins up two separate, isolated containers that share the `data/` directory.
+### 3. Dashboard (Dev)
 
-1. **Start both services**:
+In a separate terminal, start the React development server:
+
+```bash
+cd dashboard
+npm run dev
+```
+
+The dashboard will be available at `http://localhost:5173`.
+
+### 4. Docker (Production Setup)
+
+The recommended way to run the full stack is with **Docker Compose**. This spins up three isolated containers (pipeline, API, dashboard) that share the `data/` directory.
+
+1. **Start all services**:
    ```bash
-   docker-compose up -d --build
+   docker compose up -d --build
    ```
 
-2. **Access the dashboard**:
-   The dashboard will be available at `http://localhost:8000`.
-   *(Meanwhile, the pipeline will automatically run in the background).*
+2. **Access the application**:
+   - **Dashboard**: `http://localhost:3000`
+   - **API**: `http://localhost:8000`
+   - *(The pipeline runs automatically in the background)*
 
 3. **Stop the services**:
    ```bash
-   docker-compose down
+   docker compose down
    ```
