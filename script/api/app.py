@@ -3,11 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from script.services.preprocessing_service import PreProcessingService
 from script.services.kpi_service import KpiService
 from script.services.location_service import LocationService
-from script.services.neighbour_service import NeighbourService
 
 app = FastAPI()
-
-_dfs = None
 
 app.add_middleware(
     CORSMiddleware,
@@ -18,14 +15,10 @@ app.add_middleware(
 )
 
 def _get_data():
-    global _dfs
-    if _dfs is None:
-        try:
-            data = PreProcessingService.load_all_data()
-        except Exception:
-            data = None
-        _dfs = data if data is not None else None
-    return _dfs
+    try:
+        return PreProcessingService.load_all_data()
+    except Exception:
+        return None
 
 @app.get("/")
 def read_root():
