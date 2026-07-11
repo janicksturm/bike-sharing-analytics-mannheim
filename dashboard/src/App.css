@@ -56,3 +56,74 @@
 .leaflet-control-attribution a {
   color: #58a6ff !important;
 }
+
+/* ── Prediction page: User location marker ─────────────────────────────── */
+.user-pulse-ring {
+  animation: pulse-ring 2s ease-in-out infinite;
+}
+
+@keyframes pulse-ring {
+  0%, 100% {
+    opacity: 0.3;
+    stroke-width: 1.5;
+  }
+  50% {
+    opacity: 0.1;
+    stroke-width: 0.5;
+  }
+}
+
+/* ── Prediction page: Best pick marker ─────────────────────────────────── */
+.best-pick-marker {
+  animation: best-pick-glow 2s ease-in-out infinite;
+}
+
+@keyframes best-pick-glow {
+  0%, 100% {
+    stroke-width: 2;
+    stroke-opacity: 1;
+  }
+  50% {
+    stroke-width: 4;
+    stroke-opacity: 0.6;
+  }
+}
+
+/* ── Prediction page: Rank badges ──────────────────────────────────────── */
+.recommendation-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.recommendation-rank-1 {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+}
+
+.recommendation-rank-2 {
+  background: linear-gradient(135deg, #34d399, #10b981);
+  color: #ffffff;
+}
+
+.recommendation-rank-3 {
+  background: linear-gradient(135deg, #6ee7b7, #34d399);
+  color: #064e3b;
+}
+
+.recommendation-rank-4 {
+  background: #374151;
+  color: #9ca3af;
+}
+
+.recommendation-rank-5 {
+  background: #374151;
+  color: #9ca3af;
+}

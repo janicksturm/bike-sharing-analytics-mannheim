@@ -34,7 +34,7 @@ function Header() {
               `${linkBase} ${isActive ? linkActive : linkInactive}`
             }
           >
-            Prediction
+            Recommendation
           </NavLink>
         </nav>
       </div>

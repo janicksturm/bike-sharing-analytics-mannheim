@@ -1,8 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from script.services.preprocessing_service import PreProcessingService
 from script.services.kpi_service import KpiService
 from script.services.location_service import LocationService
+from script.services.recommendation_service import RecommendationService
 
 app = FastAPI()
 
@@ -13,6 +15,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+class LocationRequest(BaseModel):
+    lat: float
+    lng: float
 
 def _get_data():
     try:
@@ -38,5 +43,17 @@ def get_stations():
     try:
         service = LocationService(_get_data())
         return {"stations": service.get_stations()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/recommendations")
+def get_recommendations(body: LocationRequest):
+    """GPS-based: lat/lng → Top-5 station recommendations."""
+    df = _get_data()
+    if df is None:
+        raise HTTPException(status_code=503, detail="Data not available")
+    try:
+        service = RecommendationService(df)
+        return service.get_recommendations_for_location(body.lat, body.lng, top_n=5)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
