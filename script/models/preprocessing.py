@@ -1,6 +1,8 @@
 import os
 import pandas as pd
 
+from metrics import calculate_station_occupancy_capacity
+
 RAW_DIR = "data/raw"
 
 """
@@ -42,17 +44,7 @@ def features(df: pd.DataFrame) -> pd.DataFrame:
 
     df["total_capacity"] = df["bikes"] + df["free_racks"]
 
-    # We want to calculate how full each bike station is. 
-    # First, we find out the total number of spaces by adding the number of bikes currently there and the number of free racks. 
-    # Then, we calculate the percentage of those spaces that are occupied by bikes. 
-    # If there are no spaces available (total capacity is zero), we avoid dividing by zero 
-    # by only calculating the percentage where the total capacity is greater than zero. 
-    _capacity = df["total_capacity"].astype(float)
-    df["occupancy_pct"] = (
-        (df["bikes"] / _capacity.where(_capacity > 0) * 100)
-        .fillna(0)
-        .round(1)
-    )
+    df["occupancy_pct"] = calculate_station_occupancy_capacity(df)
 
     # We want to categorize the bike availability.
     # If there are no bikes available, we label it as "Empty". 
