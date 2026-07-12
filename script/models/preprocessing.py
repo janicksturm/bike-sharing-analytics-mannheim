@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-from metrics import calculate_station_occupancy_capacity
+from .metrics import calculate_station_occupancy_capacity
 
 RAW_DIR = "data/raw"
 
