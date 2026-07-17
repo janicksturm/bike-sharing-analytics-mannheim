@@ -1,46 +1,23 @@
-import os
 import pandas as pd
+import duckdb
 
 from .metrics import calculate_station_occupancy_capacity
-
-RAW_DIR = "data/raw"
 
 """
 This module contains functions for loading and preprocessing the bike-sharing data.
 """
 def load_all_snapshots() -> pd.DataFrame:
     """Load all snapshot files and combine them into a single DataFrame with additional features."""
-    files = sorted(
-        f for f in os.listdir(RAW_DIR) if f.endswith(".parquet")
-    )
+    dfs = duckdb.sql(
+        " SELECT regexp_extract(filename, 'data_([0-9]{8}_[0-9]{6})', 1) AS snapshot_time, uid, CAST(lat AS FLOAT) AS lat, CAST(lng AS FLOAT) AS lng, name, number, bikes, bikes_available_to_rent, bike_racks, free_racks FROM read_parquet('data/raw/*.parquet');"
+    ).to_df()
 
-    if not files:
-        raise FileNotFoundError(f"No .parquet files found in '{RAW_DIR}'. Run the data pipeline first.")
-
-    dfs = []
-    for f in files:
-        df = pd.read_parquet(os.path.join(RAW_DIR, f))
-        ts_str = f.replace("data_", "").replace(".parquet", "")
-        df["snapshot_time"] = pd.to_datetime(ts_str, format="%Y%m%d_%H%M%S")
-        df["snapshot_label"] = df["snapshot_time"].dt.strftime("%H:%M")
-        dfs.append(df)
-    all_dfs = pd.concat(dfs, ignore_index=True)
-
-    # Sort by uid + time so that groupby-diff() produces correct deltas
-    all_dfs = all_dfs.sort_values(["uid", "snapshot_time"]).reset_index(drop=True)
-
-    all_dfs = remove_columns(all_dfs)
-    all_dfs = features(all_dfs)
-
-    return all_dfs
+    dfs = features(dfs)
+    return dfs
 
 def features(df: pd.DataFrame) -> pd.DataFrame:
     """Add derived features to the DataFrame."""
     df = df.copy()
-
-    # lat/lng are stored as str in the Parquet source; convert explicitly
-    df["lat"] = df["lat"].astype(float)
-    df["lng"] = df["lng"].astype(float)
 
     df["total_capacity"] = df["bikes"] + df["free_racks"]
 
@@ -63,13 +40,5 @@ def features(df: pd.DataFrame) -> pd.DataFrame:
     # This way, a higher demand (more bikes taken out) will result in a higher demand score, 
     # while a lower demand (more bikes returned) will result in a lower demand score.
     df["demand_score"] = -df["bike_delta"]
-
-    return df
-
-def remove_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Remove columns that are not needed for modeling."""
-    df = df.copy()
-
-    df = df.drop(["spot", "booked_bikes", "active_place", "terminal_type", "bike_numbers", "bike_types", "place_type", "bike", "rack_locks", "maintenance"], axis=1)
 
     return df
