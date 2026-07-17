@@ -17,10 +17,8 @@ def load_all_snapshots() -> pd.DataFrame:
 
 def features(df: pd.DataFrame) -> pd.DataFrame:
     """Add derived features to the DataFrame."""
-    df = df.copy()
 
     df["total_capacity"] = df["bikes"] + df["free_racks"]
-
     df["occupancy_pct"] = calculate_station_occupancy_capacity(df)
 
     # We want to categorize the bike availability.
