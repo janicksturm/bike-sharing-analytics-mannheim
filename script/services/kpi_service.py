@@ -1,5 +1,7 @@
 import pandas as pd
 
+from .preprocessing_service import PreProcessingService
+
 class KpiService:
     """Service class for computing KPI status metrics from preprocessed snapshot data."""
 
@@ -17,16 +19,20 @@ class KpiService:
         cur_empty = int((latest_df["bikes"] == 0).sum())
         cur_avg_occ = round(float(latest_df["occupancy_pct"].mean()), 1)
 
-        previous_snapshots = [s for s in self.snapshots if s < latest_ts]
+        if len(self.snapshots) <= 1:
+            return {
+                "snapshot_time": latest_ts.isoformat(),
+                "total_bikes": {"value": cur_total_bikes, "delta": None},
+                "available_to_rent": {"value": cur_available, "delta": None},
+                "empty_stations": {"value": cur_empty, "delta": None},
+                "avg_occupancy": {"value": cur_avg_occ, "delta": None},
+            }
+        previous_df = self.df[self.df["snapshot_time"] == self.snapshots[-2]]
 
-        if previous_snapshots:
-            df_prev = self.df[self.df["snapshot_time"] == previous_snapshots[-1]]
-            prev_total_bikes = int(df_prev["bikes"].sum())
-            prev_available = int((df_prev["bikes"] > 0).sum())
-            prev_empty = int((df_prev["bikes"] == 0).sum())
-            prev_avg_occ = round(float(df_prev["occupancy_pct"].mean()), 1)
-        else:
-            prev_total_bikes = prev_available = prev_empty = prev_avg_occ = None
+        prev_total_bikes = previous_df["bikes"].sum()
+        prev_available = (previous_df["bikes"] > 0).sum()
+        prev_empty = (previous_df["bikes"] == 0).sum()
+        prev_avg_occ = round(previous_df["occupancy_pct"].mean(), 1)
 
         return {
             "snapshot_time": latest_ts.isoformat(),
