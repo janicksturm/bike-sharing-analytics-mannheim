@@ -9,20 +9,18 @@ class KpiService:
 
     def get_status(self) -> dict:
         """Compute KPI metrics for the latest snapshot and compare them against the immediately preceding snapshot."""
-        selected_ts = self.snapshots[-1]
-        df_cur = self.df[self.df["snapshot_time"] == selected_ts]
+        latest_ts = self.snapshots[-1]
+        latest_df = self.df[self.df["snapshot_time"] == latest_ts]
 
-        #new
-        cur_total_bikes = int(df_cur["bikes"].sum())
-        cur_available = int((df_cur["bikes"] > 0).sum())
-        cur_empty = int((df_cur["bikes"] == 0).sum())
-        cur_avg_occ = round(float(df_cur["occupancy_pct"].mean()), 1)
+        cur_total_bikes = int(latest_df["bikes"].sum())
+        cur_available = int((latest_df["bikes"] > 0).sum())
+        cur_empty = int((latest_df["bikes"] == 0).sum())
+        cur_avg_occ = round(float(latest_df["occupancy_pct"].mean()), 1)
 
-        #previous
-        prev_snapshots = [s for s in self.snapshots if s < selected_ts]
+        previous_snapshots = [s for s in self.snapshots if s < latest_ts]
 
-        if prev_snapshots:
-            df_prev = self.df[self.df["snapshot_time"] == prev_snapshots[-1]]
+        if previous_snapshots:
+            df_prev = self.df[self.df["snapshot_time"] == previous_snapshots[-1]]
             prev_total_bikes = int(df_prev["bikes"].sum())
             prev_available = int((df_prev["bikes"] > 0).sum())
             prev_empty = int((df_prev["bikes"] == 0).sum())
@@ -31,7 +29,7 @@ class KpiService:
             prev_total_bikes = prev_available = prev_empty = prev_avg_occ = None
 
         return {
-            "snapshot_time": selected_ts.isoformat(),
+            "snapshot_time": latest_ts.isoformat(),
             "total_bikes": {
                 "value": cur_total_bikes,
                 "delta": self._delta(cur_total_bikes, prev_total_bikes),
