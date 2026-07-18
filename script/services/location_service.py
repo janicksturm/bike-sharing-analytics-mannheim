@@ -1,8 +1,5 @@
 import pandas as pd
 
-from script.services.preprocessing_service import PreProcessingService
-
-
 class LocationService:
     """Service class for retrieving station location and live status data."""
 
