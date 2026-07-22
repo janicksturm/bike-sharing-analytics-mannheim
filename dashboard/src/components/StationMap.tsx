@@ -94,7 +94,7 @@ function useMapFitStations(leafletMap: React.RefObject<L.Map | null>, isLoaded: 
     if (!map || !isLoaded || stations.length === 0 || hasFitted.current) return;
 
     const bounds = L.latLngBounds(stations.map((s) => [s.lat, s.lng]));
-    map.fitBounds(bounds, { padding: [30, 30] });
+    map.fitBounds(bounds, { padding: [30, 30], animate: false });
     hasFitted.current = true;
   }, [stations, isLoaded, leafletMap]);
 }
