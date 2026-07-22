@@ -3,6 +3,19 @@ import pandas as pd
 from .utils import haversine
 
 
+def _normalize(series: pd.Series) -> pd.Series:
+    """Min-max normalize a Series to [0, 1].
+
+    When all values are equal (max == min), returns 0.5 for every entry
+    so that the factor contributes a neutral middle value.
+    """
+    min_val = series.min()
+    max_val = series.max()
+    if max_val == min_val:
+        return pd.Series(0.5, index=series.index)
+    return (series - min_val) / (max_val - min_val)
+
+
 def best_possible_station(latest_station_data: pd.DataFrame, neighbor_stations: pd.DataFrame) -> pd.DataFrame:
     """Rank neighboring stations and return best alternatives."""
     if latest_station_data.empty:
@@ -75,11 +88,13 @@ def score_stations_for_user(latest_data: pd.DataFrame, empty_rates: pd.DataFrame
     # Use demand_score as trend indicator (negative demand_score = bikes returning = good)
     candidates["demand_trend"] = -candidates["demand_score"].fillna(0)
 
-    # Combined recommendation score
+    # Normalize all factors to [0, 1] so weights reflect true importance
+    # Weights: bikes 35%, reliability 25%, proximity 25%, trend 15%
     candidates["recommendation_score"] = (
-        + candidates["bikes"] * 0.5
-        - (candidates["distance_meters"] * 0.3
-        + candidates["demand_trend"] * 0.2)
+        _normalize(candidates["bikes"]) * 0.35
+        + (1 - _normalize(candidates["empty_rate"])) * 0.25
+        + (1 - _normalize(candidates["distance_meters"])) * 0.25
+        + _normalize(candidates["demand_trend"]) * 0.15
     )
 
     candidates = candidates.sort_values("recommendation_score", ascending=False)
