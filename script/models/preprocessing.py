@@ -12,6 +12,10 @@ def load_all_snapshots() -> pd.DataFrame:
         " SELECT regexp_extract(filename, 'data_([0-9]{8}_[0-9]{6})', 1) AS snapshot_time, uid, CAST(lat AS FLOAT) AS lat, CAST(lng AS FLOAT) AS lng, name, number, bikes, bikes_available_to_rent, bike_racks, free_racks FROM read_parquet('data/raw/*.parquet');"
     ).to_df()
 
+    dfs["snapshot_time"] = pd.to_datetime(
+        dfs["snapshot_time"], format="%Y%m%d_%H%M%S"
+    )
+
     dfs = features(dfs)
     return dfs
 
