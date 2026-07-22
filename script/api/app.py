@@ -1,3 +1,5 @@
+import time
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -19,9 +21,18 @@ class LocationRequest(BaseModel):
     lat: float
     lng: float
 
+_DATA_CACHE: dict = {"df": None, "ts": 0.0}
+_CACHE_TTL_SECONDS = 300
+
 def _get_data():
+    now = time.time()
+    if _DATA_CACHE["df"] is not None and (now - _DATA_CACHE["ts"]) < _CACHE_TTL_SECONDS:
+        return _DATA_CACHE["df"]
     try:
-        return PreProcessingService.load_all_data()
+        df = PreProcessingService.load_all_data()
+        _DATA_CACHE["df"] = df
+        _DATA_CACHE["ts"] = now
+        return df
     except Exception:
         return None
 
