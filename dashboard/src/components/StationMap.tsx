@@ -1,18 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-
-interface Station {
-  uid: number;
-  name: string;
-  lat: number;
-  lng: number;
-  bikes: number;
-  free_racks: number;
-  occupancy_pct: number;
-  bikes_available_to_rent: number;
-  status: "Available" | "Low" | "Empty";
-}
+import type { Station } from "../types";
 
 interface StationMapProps {
   stations: Station[];
@@ -63,24 +52,15 @@ function createPopupContent(s: Station): string {
 /**
  * Initializes the Leaflet map and handles its lifecycle (cleanup on unmount).
  */
-function useMapInitialization(mapRef: React.RefObject<HTMLDivElement | null>, stations: Station[]) {
+function useMapInitialization(mapRef: React.RefObject<HTMLDivElement | null>) {
   const leafletMap = useRef<L.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     if (!mapRef.current || leafletMap.current) return;
 
-    let centerLat = 49.4875;
-    let centerLng = 8.4660;
-
-    // Use actual center if stations are loaded on mount
-    if (stations && stations.length > 0) {
-      centerLat = stations.reduce((s, x) => s + x.lat, 0) / stations.length;
-      centerLng = stations.reduce((s, x) => s + x.lng, 0) / stations.length;
-    }
-
     const map = L.map(mapRef.current, {
-      center: [centerLat, centerLng],
+      center: [49.4875, 8.4660],
       zoom: 14,
       zoomControl: true,
       attributionControl: true,
@@ -101,6 +81,22 @@ function useMapInitialization(mapRef: React.RefObject<HTMLDivElement | null>, st
   }, []);
 
   return { leafletMap, isLoaded };
+}
+
+/**
+ * Re-centers the map to fit all station bounds once stations are loaded.
+ */
+function useMapFitStations(leafletMap: React.RefObject<L.Map | null>, isLoaded: boolean, stations: Station[]) {
+  const hasFitted = useRef(false);
+
+  useEffect(() => {
+    const map = leafletMap.current;
+    if (!map || !isLoaded || stations.length === 0 || hasFitted.current) return;
+
+    const bounds = L.latLngBounds(stations.map((s) => [s.lat, s.lng]));
+    map.fitBounds(bounds, { padding: [30, 30] });
+    hasFitted.current = true;
+  }, [stations, isLoaded, leafletMap]);
 }
 
 /**
@@ -134,7 +130,10 @@ function useMapMarkers(leafletMap: React.RefObject<L.Map | null>, isLoaded: bool
 function StationMap({ stations }: StationMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
 
-  const { leafletMap, isLoaded } = useMapInitialization(mapRef, stations);
+  const { leafletMap, isLoaded } = useMapInitialization(mapRef);
+
+  // Fit map to stations once they arrive
+  useMapFitStations(leafletMap, isLoaded, stations);
 
   // Sync station markers dynamically
   useMapMarkers(leafletMap, isLoaded, stations);
