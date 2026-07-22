@@ -1,34 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-
-interface Recommendation {
-  rank: number;
-  uid: number;
-  name: string;
-  lat: number;
-  lng: number;
-  bikes: number;
-  free_racks: number;
-  occupancy_pct: number;
-  status: string;
-  distance_meters: number;
-  empty_rate: number;
-  recommendation_score: number;
-}
-
-interface Station {
-  uid: number;
-  name: string;
-  lat: number;
-  lng: number;
-  bikes: number;
-  status: string;
-}
+import type { Recommendation, StationBasic } from "../types";
 
 interface RecommendationMapProps {
   recommendations: Recommendation[];
-  allStations: Station[];
+  allStations: StationBasic[];
   userLat: number | null;
   userLng: number | null;
   onStationClick?: (uid: number) => void;
@@ -38,6 +15,7 @@ interface RecommendationMapProps {
 const RANK_COLORS = ["#10b981", "#34d399", "#6ee7b7", "#a7f3d0", "#d1fae5"];
 
 function createRecommendationPopup(r: Recommendation): string {
+  const scorePct = Math.round(r.recommendation_score * 100);
   return `
     <div class="font-sans min-w-[200px] text-gray-200 bg-gray-900 rounded-xl px-3.5 py-3">
       <div class="flex items-center gap-2 mb-1">
@@ -68,7 +46,7 @@ function createRecommendationPopup(r: Recommendation): string {
         </tr>
         <tr>
           <td class="text-gray-400 py-0.5">Score</td>
-          <td class="text-right font-bold text-emerald-400">${r.recommendation_score.toFixed(1)}</td>
+          <td class="text-right font-bold text-emerald-400">${scorePct}%</td>
         </tr>
       </table>
     </div>`;
@@ -80,15 +58,12 @@ function RecommendationMap({recommendations, allStations, userLat, userLng, onSt
   const markersRef = useRef<L.Layer[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Initialize map
+  // Initialize map (once)
   useEffect(() => {
     if (!mapRef.current || leafletMap.current) return;
 
-    const centerLat = userLat ?? 49.4875;
-    const centerLng = userLng ?? 8.4660;
-
     const map = L.map(mapRef.current, {
-      center: [centerLat, centerLng],
+      center: [49.4875, 8.4660],
       zoom: 14,
       zoomControl: true,
       attributionControl: true,
@@ -108,6 +83,15 @@ function RecommendationMap({recommendations, allStations, userLat, userLng, onSt
     };
   }, []);
 
+  // Re-center map when user location becomes available
+  useEffect(() => {
+    const map = leafletMap.current;
+    if (!map || !isLoaded) return;
+    if (userLat !== null && userLng !== null) {
+      map.setView([userLat, userLng], 15, { animate: true });
+    }
+  }, [userLat, userLng, isLoaded]);
+
   // Sync markers
   useEffect(() => {
     const map = leafletMap.current;
@@ -119,7 +103,7 @@ function RecommendationMap({recommendations, allStations, userLat, userLng, onSt
 
     const recommendedUids = new Set(recommendations.map((r) => r.uid));
 
-    // Draw all stations as small gray dots wiht lightgray highlighting
+    // Draw all stations as small gray dots with lightgray highlighting
     allStations.forEach((station) => {
       if (recommendedUids.has(station.uid)) return;
 
@@ -236,4 +220,3 @@ function RecommendationMap({recommendations, allStations, userLat, userLng, onSt
 }
 
 export default RecommendationMap;
-export type { Recommendation };
