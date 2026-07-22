@@ -8,7 +8,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import type { RectangleProps } from "recharts";
-import type { Station } from "./StationMap";
+import type { Station } from "../types";
 
 interface StationRankingChartProps {
   stations: Station[];
