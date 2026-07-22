@@ -1,57 +1,58 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import useFetch from "../hooks/useFetch";
 import useGeolocation from "../hooks/useGeolocation";
 import RecommendationMap from "../components/RecommendationMap";
 import RecommendationCard from "../components/RecommendationCard";
-import type { Recommendation } from "../components/RecommendationMap";
-
-interface StationBasic {
-  uid: number;
-  name: string;
-  lat: number;
-  lng: number;
-  bikes: number;
-  status: string;
-}
-
-interface StationsResponse {
-  stations: StationBasic[];
-}
-
-interface RecommendationResponse {
-  user_location?: { lat: number; lng: number };
-  recommendations: Recommendation[];
-}
+import type { Recommendation, StationResponse, RecommendationResponse } from "../types";
 
 function PredictionPage() {
   const geo = useGeolocation();
-  const [stationsData] = useFetch<StationsResponse>("http://localhost:8000/stations");
+  const { data: stationsData } = useFetch<StationResponse>("http://localhost:8000/stations");
 
   // Recommendation state
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [recLoading, setRecLoading] = useState(false);
   const [gpsMode, setGpsMode] = useState(true);
+  const [selectedStationUid, setSelectedStationUid] = useState<number | null>(null);
+
+  // Shared fetch logic: POST lat/lng → recommendations
+  const fetchRecommendations = useCallback((lat: number, lng: number) => {
+    setRecLoading(true);
+    fetch("http://localhost:8000/recommendations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lat, lng }),
+    })
+      .then((res) => res.json())
+      .then((data: RecommendationResponse) => {
+        setRecommendations(data.recommendations || []);
+      })
+      .catch(() => setRecommendations([]))
+      .finally(() => setRecLoading(false));
+  }, []);
 
   // GPS-based recommendations
   useEffect(() => {
     if (!geo.loading && geo.lat !== null && geo.lng !== null) {
-      setRecLoading(true);
-      fetch("http://localhost:8000/recommendations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lat: geo.lat, lng: geo.lng }),
-      })
-        .then((res) => res.json())
-        .then((data: RecommendationResponse) => {
-          setRecommendations(data.recommendations || []);
-          setGpsMode(true);
-        })
-        .catch(() => setRecommendations([]))
-        .finally(() => setRecLoading(false));
+      fetchRecommendations(geo.lat, geo.lng);
+      setGpsMode(true);
     } else if (!geo.loading && geo.error) {
       setGpsMode(false);
     }
-  }, [geo.loading, geo.lat, geo.lng, geo.error]);
+  }, [geo.loading, geo.lat, geo.lng, geo.error, fetchRecommendations]);
+
+  // Station-click handler: use clicked station's coords for recommendations
+  const handleStationClick = useCallback(
+    (uid: number) => {
+      const station = stationsData?.stations.find((s) => s.uid === uid);
+      if (!station) return;
+
+      setSelectedStationUid(uid);
+      setGpsMode(false);
+      fetchRecommendations(station.lat, station.lng);
+    },
+    [stationsData, fetchRecommendations],
+  );
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
@@ -93,6 +94,8 @@ function PredictionPage() {
           allStations={stationsData?.stations || []}
           userLat={gpsMode ? geo.lat : null}
           userLng={gpsMode ? geo.lng : null}
+          onStationClick={handleStationClick}
+          selectedStationUid={selectedStationUid}
         />
 
         {/* Recommendation Cards */}
