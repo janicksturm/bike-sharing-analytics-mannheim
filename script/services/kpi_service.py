@@ -29,10 +29,10 @@ class KpiService:
             }
         previous_df = self.df[self.df["snapshot_time"] == self.snapshots[-2]]
 
-        prev_total_bikes = previous_df["bikes"].sum()
-        prev_available = (previous_df["bikes"] > 0).sum()
-        prev_empty = (previous_df["bikes"] == 0).sum()
-        prev_avg_occ = round(previous_df["occupancy_pct"].mean(), 1)
+        prev_total_bikes = int(previous_df["bikes"].sum())
+        prev_available = int((previous_df["bikes"] > 0).sum())
+        prev_empty = int((previous_df["bikes"] == 0).sum())
+        prev_avg_occ = round(float(previous_df["occupancy_pct"].mean()), 1)
 
         return {
             "snapshot_time": latest_ts.isoformat(),
