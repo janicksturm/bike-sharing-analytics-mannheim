@@ -1,11 +1,7 @@
-interface StatValue {
-  value: number;
-  delta: number;
-}
 
 interface StatusCardProps {
   label: string;
-  stat: StatValue;
+  stat: { value: number; delta: number };
   unit?: string;
   decimals?: number;
 }
@@ -55,4 +51,4 @@ function StatusCard({ label, stat, unit = "", decimals = 0 }: StatusCardProps) {
 }
 
 export default StatusCard;
-export type { StatusCardProps, StatValue };
+export type { StatusCardProps };
