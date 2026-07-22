@@ -27,14 +27,16 @@ function StatusPage() {
     REFRESH_INTERVAL_MS,
   );
 
+  const snapshotData = data ? ("status" in data ? (data as any).status : data) : null;
+
   return (
     <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-white">Status</h2>
           <p className="text-xs text-gray-500 mt-0.5">
-            {data
-              ? `Snapshot: ${formatSnapshotTime(data.snapshot_time)}`
+            {snapshotData
+              ? `Snapshot: ${formatSnapshotTime(snapshotData.snapshot_time)}`
               : "Fetching latest snapshot…"}
           </p>
         </div>
@@ -58,7 +60,7 @@ function StatusPage() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {!data
+        {!snapshotData
           ? Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
@@ -69,19 +71,19 @@ function StatusPage() {
             <>
               <StatusCard
                 label="Total Bikes"
-                stat={data.total_bikes}
+                stat={snapshotData.total_bikes}
               />
               <StatusCard
                 label="Available to Rent"
-                stat={data.available_to_rent}
+                stat={snapshotData.available_to_rent}
               />
               <StatusCard
                 label="Empty Stations"
-                stat={data.empty_stations}
+                stat={snapshotData.empty_stations}
               />
               <StatusCard
                 label="Avg Occupancy"
-                stat={data.avg_occupancy}
+                stat={snapshotData.avg_occupancy}
                 unit="%"
                 decimals={1}
               />
