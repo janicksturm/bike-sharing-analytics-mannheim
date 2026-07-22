@@ -1,4 +1,4 @@
-import type { Recommendation } from "./RecommendationMap";
+import type { Recommendation } from "../types";
 
 interface RecommendationCardProps {
   recommendation: Recommendation;
@@ -6,6 +6,7 @@ interface RecommendationCardProps {
 
 function RecommendationCard({ recommendation: rec }: RecommendationCardProps) {
   const isBestPick = rec.rank === 1;
+  const scorePct = Math.round(rec.recommendation_score * 100);
 
   return (
     <div
@@ -50,13 +51,13 @@ function RecommendationCard({ recommendation: rec }: RecommendationCardProps) {
       <div className="mb-2">
         <div className="flex items-center justify-between mb-1">
           <span className="text-[10px] text-gray-400 uppercase">Score</span>
-          <span className="text-xs font-bold text-emerald-400">{rec.recommendation_score.toFixed(1)}</span>
+          <span className="text-xs font-bold text-emerald-400">{scorePct}%</span>
         </div>
         <div className="w-full h-1.5 bg-gray-700 rounded-full overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-500"
             style={{
-              width: `${Math.min(100, Math.max(5, rec.recommendation_score))}%`,
+              width: `${Math.min(100, Math.max(5, scorePct))}%`,
               background: `linear-gradient(90deg, #10b981, #34d399)`,
             }}
           />
