@@ -42,17 +42,24 @@ def read_root():
 
 @app.get("/status")
 def get_status():
+    df = _get_data()
+    if df is None:
+        raise HTTPException(status_code=503, detail="Data not available")
     try:
-        kpis = KpiService(_get_data())
-        status = kpis.get_status()
-        return status
+        kpis = KpiService(df)
+        return kpis.get_status()
     except ValueError as e:
         return {"error": str(e)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/stations")
 def get_stations():
+    df = _get_data()
+    if df is None:
+        raise HTTPException(status_code=503, detail="Data not available")
     try:
-        service = LocationService(_get_data())
+        service = LocationService(df)
         return {"stations": service.get_stations()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
