@@ -5,16 +5,16 @@ from script.models.recommendations import score_stations_for_user, _normalize
 
 latest_data = pd.DataFrame({
     "uid": [1, 2, 3, 4, 5, 6],
-    "name": ["Lindenhof", "Neckarstadt", "Theresienkrankenhaus", "G7", "L1 Schloss", "MVV Hochhaus"],
-    "lat": [49.477082, 49.497070, 49.489559, 49.491183, 49.484705, 49.494114],
-    "lng": [8.463662, 8.473044, 8.480297, 8.462391, 8.463544, 8.467600],
-    "bikes": [6, 28, 0, 4, 0, 2],
-    "demand_score": [-1, 3, 0, -2, 0, 1]
+    "name": ["Schloss", "Marktplatz", "Rathaus", "Paradeplatz", "Uni Mensa", "Wasserturm"],
+    "lat": [49.4880, 49.4870, 49.4890, 49.4860, 49.4885, 49.4865],
+    "lng": [8.4665, 8.4650, 8.4670, 8.4655, 8.4675, 8.4645],
+    "bikes": [6, 12, 0, 4, 0, 2],
+    "demand_score": [-1, 3, 0, -2, 0, 1],
 })
 
 empty_rates = pd.DataFrame({
     "uid": [1, 2, 3, 4, 5, 6],
-    "empty_rate": [0.10, 0.45, 0.70, 0.15, 0.80, 0.30]
+    "empty_rate": [0.10, 0.45, 0.70, 0.15, 0.80, 0.30],
 })
 
 USER_LAT = 49.4875
@@ -34,9 +34,28 @@ def test_normalize_equal_values():
 
 def test_stations_without_bikes_filtered():
     result = score_stations_for_user(latest_data, empty_rates, USER_LAT, USER_LNG)
-    assert "Theresienkrankenhaus" not in result["name"].values
-    assert "L1 Schloss" not in result["name"].values
+    # Rathaus (0 bikes) and Uni Mensa (0 bikes) must be excluded
+    assert "Rathaus" not in result["name"].values
+    assert "Uni Mensa" not in result["name"].values
 
+
+def test_stations_beyond_800m_filtered():
+    """Stations farther than 800 m from the user must be excluded."""
+    data = pd.DataFrame({
+        "uid": [1, 2],
+        "name": ["Nearby", "TooFar"],
+        "lat": [49.4880, 49.520],
+        "lng": [8.4665, 8.500],
+        "bikes": [5, 5],
+        "demand_score": [0, 0],
+    })
+    rates = pd.DataFrame({"uid": [1, 2], "empty_rate": [0.1, 0.1]})
+    result = score_stations_for_user(data, rates, USER_LAT, USER_LNG)
+    assert "TooFar" not in result["name"].values
+    assert "Nearby" in result["name"].values
+
+
+# ── Sorting & top-n ──────────────────────────────────────────────────
 
 def test_results_are_sorted():
     result = score_stations_for_user(latest_data, empty_rates, USER_LAT, USER_LNG)
@@ -44,8 +63,8 @@ def test_results_are_sorted():
 
 
 def test_top_n():
-    result = score_stations_for_user(latest_data, empty_rates, USER_LAT, USER_LNG, top_n=3)
-    assert len(result) == 3
+    result = score_stations_for_user(latest_data, empty_rates, USER_LAT, USER_LNG, top_n=2)
+    assert len(result) == 2
 
 
 def test_empty_input():
@@ -72,12 +91,13 @@ def test_more_bikes_scores_higher():
 
 def test_closer_station_scores_higher():
     data = pd.DataFrame({
-        "uid": [1, 2], "name": ["Close", "Far"],
-        "lat": [49.488, 49.520], "lng": [8.466, 8.500],
+        "uid": [1, 2], "name": ["Close", "FartherButInRange"],
+        "lat": [49.4878, 49.4920], "lng": [8.4662, 8.4700],
         "bikes": [10, 10], "demand_score": [0, 0],
     })
     rates = pd.DataFrame({"uid": [1, 2], "empty_rate": [0.1, 0.1]})
     result = score_stations_for_user(data, rates, USER_LAT, USER_LNG)
+    assert len(result) == 2
     assert result.iloc[0]["name"] == "Close"
 
 
