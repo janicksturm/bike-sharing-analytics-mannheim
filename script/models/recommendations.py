@@ -48,11 +48,22 @@ def score_stations_for_user(latest_data: pd.DataFrame, empty_rates: pd.DataFrame
 
     # Normalize all factors to [0, 1] so weights reflect true importance
     # Weights: bikes 35%, reliability 25%, proximity 25%, trend 15%
+    # candidates["recommendation_score"] = (
+    #     _normalize(candidates["bikes"]) * 0.20
+    #     + (1 - _normalize(candidates["empty_rate"])) * 0.25
+    #     + (1 - _normalize(candidates["distance_meters"])) * 0.40
+    #     + _normalize(candidates["demand_trend"]) * 0.15
+    # )
+    bike_score = 1 - np.exp(-candidates["bikes"] / 8)
+    distance_score = np.exp(-candidates["distance_meters"] / 800)
+    empty_score = np.exp(-4 * candidates["empty_rate"])
+    trend_score = _normalize(candidates["demand_trend"])
+
     candidates["recommendation_score"] = (
-        _normalize(candidates["bikes"]) * 0.35
-        + (1 - _normalize(candidates["empty_rate"])) * 0.25
-        + (1 - _normalize(candidates["distance_meters"])) * 0.25
-        + _normalize(candidates["demand_trend"]) * 0.15
+        0.25 * bike_score
+        + 0.10 * empty_score
+        + 0.40 * distance_score
+        + 0.25 * trend_score
     )
 
     candidates = candidates.sort_values("recommendation_score", ascending=False)
