@@ -3,6 +3,7 @@ import time
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Optional
 from script.services.preprocessing_service import PreProcessingService
 from script.services.kpi_service import KpiService
 from script.services.location_service import LocationService
@@ -20,6 +21,7 @@ app.add_middleware(
 class LocationRequest(BaseModel):
     lat: float
     lng: float
+    exclude_uid: Optional[int] = None
 
 _DATA_CACHE: dict = {"df": None, "ts": 0.0}
 _CACHE_TTL_SECONDS = 300
@@ -72,6 +74,6 @@ def get_recommendations(body: LocationRequest):
         raise HTTPException(status_code=503, detail="Data not available")
     try:
         service = RecommendationService(df)
-        return service.get_recommendations_for_location(body.lat, body.lng, top_n=5)
+        return service.get_recommendations_for_location(body.lat, body.lng, top_n=5, exclude_uid=body.exclude_uid)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

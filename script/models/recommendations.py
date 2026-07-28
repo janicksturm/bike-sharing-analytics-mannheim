@@ -16,7 +16,7 @@ def _normalize(series: pd.Series) -> pd.Series:
     return (series - min_val) / (max_val - min_val)
 
 
-def score_stations_for_user(latest_data: pd.DataFrame, empty_rates: pd.DataFrame, user_lat: float, user_lng: float, top_n: int = 5) -> pd.DataFrame:
+def score_stations_for_user(latest_data: pd.DataFrame, empty_rates: pd.DataFrame, user_lat: float, user_lng: float, top_n: int = 5, exclude_uid: int | None = None) -> pd.DataFrame:
     """Rank all stations relative to the user's GPS position.
 
     The recommendation score combines:
@@ -30,6 +30,9 @@ def score_stations_for_user(latest_data: pd.DataFrame, empty_rates: pd.DataFrame
 
     candidates = latest_data.merge(empty_rates, on="uid", how="left")
     candidates["empty_rate"] = candidates["empty_rate"].fillna(0)
+
+    if exclude_uid is not None:
+        candidates = candidates[candidates["uid"] != exclude_uid].copy()
 
     # Compute distance from user to each station
     candidates["distance_meters"] = candidates.apply(

@@ -16,12 +16,12 @@ function PredictionPage() {
   const [selectedStationUid, setSelectedStationUid] = useState<number | null>(null);
 
   // Shared fetch logic: POST lat/lng → recommendations
-  const fetchRecommendations = useCallback((lat: number, lng: number) => {
+  const fetchRecommendations = useCallback((lat: number, lng: number, exclude_uid?: number) => {
     setRecLoading(true);
     fetch("http://localhost:8000/recommendations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ lat, lng }),
+      body: JSON.stringify({ lat, lng, ...(exclude_uid != null && { exclude_uid }) }),
     })
       .then((res) => res.json())
       .then((data: RecommendationResponse) => {
@@ -49,7 +49,7 @@ function PredictionPage() {
 
       setSelectedStationUid(uid);
       setGpsMode(false);
-      fetchRecommendations(station.lat, station.lng);
+      fetchRecommendations(station.lat, station.lng, uid);
     },
     [stationsData, fetchRecommendations],
   );

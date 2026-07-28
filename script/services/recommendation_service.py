@@ -16,7 +16,7 @@ class RecommendationService:
         # Historical empty rates
         self.empty_rates = calculate_empty_rate(df)
 
-    def get_recommendations_for_location(self, lat: float, lng: float, top_n: int = 5) -> dict:
+    def get_recommendations_for_location(self, lat: float, lng: float, top_n: int = 5, exclude_uid: int | None = None) -> dict:
         """GPS-based: Return top-N station recommendations for a user location."""
         scored = score_stations_for_user(
             self.latest_data,
@@ -24,6 +24,7 @@ class RecommendationService:
             user_lat=lat,
             user_lng=lng,
             top_n=top_n,
+            exclude_uid=exclude_uid,
         )
 
         recommendations = []
