@@ -40,6 +40,10 @@ def score_stations_for_user(latest_data: pd.DataFrame, empty_rates: pd.DataFrame
     # Only consider stations that currently have at least 1 bike
     candidates = candidates[candidates["bikes"] >= 1].copy()
 
+    MAXIMALE_DISTANCE_METERS = 800
+    candidates = candidates[candidates["distance_meters"] <= MAXIMALE_DISTANCE_METERS]
+
+
     if candidates.empty:
         return pd.DataFrame()
 
