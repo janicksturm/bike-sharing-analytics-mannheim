@@ -18,6 +18,9 @@ This project focuses on modeling and visualizing the spatial-temporal demand for
 ![Dashboard Status Page](assets/status-page-screenshot.png)
 *Dashboard Status Page*
 
+![Recommendation Page](assets/recommendation-page-screenshot.png)
+*Recommendation Page with selected Station and recommended Stations*
+
 ## Installation
 
 1. **Clone the repository**:
