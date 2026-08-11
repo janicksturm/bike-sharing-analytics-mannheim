@@ -1,7 +1,7 @@
 [project]
 name = "nextbike-prediction"
 version = "0.1.0"
-description = "Add your description here"
+description = "A data engineering and analytics pipeline for collecting, processing, and analyzing Nextbike bike-sharing data from Mannheim."
 readme = "README.md"
 authors = [
     { name = "Janick Sturm", email = "sturmjanick@gmx.net" }
