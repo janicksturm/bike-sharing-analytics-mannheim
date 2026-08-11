@@ -4,10 +4,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
-from script.services.preprocessing_service import PreProcessingService
-from script.services.kpi_service import KpiService
-from script.services.location_service import LocationService
-from script.services.recommendation_service import RecommendationService
+from src.nextbike_prediction.services.preprocessing_service import PreProcessingService
+from src.nextbike_prediction.services.kpi_service import KpiService
+from src.nextbike_prediction.services.location_service import LocationService
+from src.nextbike_prediction.services.recommendation_service import RecommendationService
 
 app = FastAPI()
 

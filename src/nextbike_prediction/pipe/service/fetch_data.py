@@ -1,7 +1,7 @@
 
 import requests
 from pydantic import TypeAdapter
-from script.pipe.models.bike_station import BikeStation
+from src.nextbike_prediction.pipe.models.bike_station import BikeStation
 
 def get_data_as_json(url: str):
     """Fetches data from the specified URL and returns it as a list of BikeStation objects."""

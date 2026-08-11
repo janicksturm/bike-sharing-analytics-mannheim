@@ -1,7 +1,7 @@
 import pandas as pd
 
-from script.models.metrics import calculate_empty_rate
-from script.models.recommendations import score_stations_for_user
+from src.nextbike_prediction.models.metrics import calculate_empty_rate
+from src.nextbike_prediction.models.recommendations import score_stations_for_user
 
 class RecommendationService:
     """Service class for station recommendations based on user location."""

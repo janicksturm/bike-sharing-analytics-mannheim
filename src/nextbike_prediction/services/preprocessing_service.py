@@ -1,4 +1,4 @@
-from script.models.preprocessing import load_all_snapshots
+from src.nextbike_prediction.models.preprocessing import load_all_snapshots
 
 class PreProcessingService:
     """Service class for data loading and preprocessing"""

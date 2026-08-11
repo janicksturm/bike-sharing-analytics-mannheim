@@ -1,6 +1,6 @@
 import time
 
-from script.pipe.service.fetch_data import get_data_as_json
+from src.nextbike_prediction.pipe.service.fetch_data import get_data_as_json
 
 URL = "https://mannheim.opendatasoft.com/api/explore/v2.1/catalog/datasets/free_bike_status/exports/json"
 
