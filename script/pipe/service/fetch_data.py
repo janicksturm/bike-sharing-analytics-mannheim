@@ -40,7 +40,7 @@ def download_file():
     return file_path, timestamp
 
 def get_data_as_json(url: str):
-    """Fetch the Bike Station data as a json file"""
+    """Fetches data from the specified URL and returns it as a list of BikeStation objects."""
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
