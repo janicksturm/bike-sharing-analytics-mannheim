@@ -2,6 +2,8 @@ import os
 import requests
 import pandas as pd
 from datetime import datetime
+from pydantic import TypeAdapter
+from models import BikeStation
 
 URL = "https://mannheim.opendatasoft.com/api/explore/v2.1/catalog/datasets/free_bike_status/exports/parquet?lang=de&timezone=Europe%2FBerlin"
 SAVE_DIR = "data/raw"
@@ -36,3 +38,22 @@ def download_file():
     print(f"Parquet saved: {file_path} ({len(df)} rows, {len(df.columns)} cols)")
 
     return file_path, timestamp
+
+def get_data_as_json(url: str):
+    """Fetch the Bike Station data as a json file"""
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+
+        station_data = TypeAdapter(list[BikeStation]).validate_python(response.json())
+
+        return station_data
+
+    except requests.Timeout:
+        print("Request timed out")
+
+    except requests.RequestException as e:
+        print(f"HTTP error: {e}")
+
+    except ValueError:
+        print("Response wasn't valid JSON")
