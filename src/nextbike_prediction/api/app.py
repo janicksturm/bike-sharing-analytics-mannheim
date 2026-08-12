@@ -66,6 +66,7 @@ def get_status():
 
 @app.get("/stations", response_model=list[StationResponse])
 def get_stations(db: Session = Depends(get_db)):
+    """Fetch all stations from the database."""
     statement = select(Station)
 
     return db.scalars(statement).all()
