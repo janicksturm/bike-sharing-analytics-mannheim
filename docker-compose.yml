@@ -1,4 +1,20 @@
 services:
+  postgres:
+    image: postgres:17
+    container_name: nextbike-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: nextbike
+      POSTGRES_USER: nextbike
+      POSTGRES_PASSWORD: nextbike
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   api:
     build: .
     container_name: nextbike-api
@@ -23,3 +39,6 @@ services:
     ports:
       - "3000:80"
     restart: unless-stopped
+
+volumes:
+  postgres_data:
