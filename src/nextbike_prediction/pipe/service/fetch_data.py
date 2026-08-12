@@ -3,7 +3,7 @@ import requests
 from pydantic import TypeAdapter
 from src.nextbike_prediction.pipe.models.bike_station import BikeStation
 
-def get_data_as_json(url: str):
+def get_data_as_objects(url: str):
     """Fetches data from the specified URL and returns it as a list of BikeStation objects."""
     try:
         response = requests.get(url, timeout=10)
