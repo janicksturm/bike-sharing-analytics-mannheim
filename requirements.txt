@@ -5,3 +5,5 @@ fastparquet
 fastapi
 uvicorn[standard]
 duckdb
+sqlalchemy
+psycopg[binary]
