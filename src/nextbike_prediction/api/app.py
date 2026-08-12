@@ -2,15 +2,13 @@ import time
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from sqlalchemy import select
-
-from typing import Optional
 
 from requests import Session
 
 from nextbike_prediction.services.preprocessing_service import PreProcessingService
 from src.nextbike_prediction.api.schema.station import StationResponse
+from src.nextbike_prediction.api.schema.local_request import LocationRequest
 from src.nextbike_prediction.database.models.station import Station
 from src.nextbike_prediction.services.kpi_service import KpiService
 from src.nextbike_prediction.services.location_service import LocationService
@@ -27,10 +25,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-class LocationRequest(BaseModel):
-    lat: float
-    lng: float
-    exclude_uid: Optional[int] = None
 
 _DATA_CACHE: dict = {"df": None, "ts": 0.0}
 _CACHE_TTL_SECONDS = 300
