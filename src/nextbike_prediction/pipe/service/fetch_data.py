@@ -15,9 +15,12 @@ def get_data_as_objects(url: str):
 
     except requests.Timeout:
         print("Request timed out")
+        raise
 
     except requests.RequestException as e:
         print(f"HTTP error: {e}")
+        raise
 
     except ValueError:
         print("Response wasn't valid JSON")
+        raise
