@@ -1,13 +1,22 @@
 import time
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sqlalchemy import select
+
 from typing import Optional
-from src.nextbike_prediction.services.preprocessing_service import PreProcessingService
+
+from requests import Session
+
+from nextbike_prediction.services.preprocessing_service import PreProcessingService
+from src.nextbike_prediction.api.schema.station import StationResponse
+from src.nextbike_prediction.database.models.station import Station
 from src.nextbike_prediction.services.kpi_service import KpiService
 from src.nextbike_prediction.services.location_service import LocationService
 from src.nextbike_prediction.services.recommendation_service import RecommendationService
+
+from src.nextbike_prediction.api.dependencies import get_db
 
 app = FastAPI()
 
@@ -55,16 +64,11 @@ def get_status():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/stations")
-def get_stations():
-    df = _get_data()
-    if df is None:
-        raise HTTPException(status_code=503, detail="Data not available")
-    try:
-        service = LocationService(df)
-        return {"stations": service.get_stations()}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+@app.get("/stations", response_model=list[StationResponse])
+def get_stations(db: Session = Depends(get_db)):
+    statement = select(Station)
+
+    return db.scalars(statement).all()
 
 @app.post("/recommendations")
 def get_recommendations(body: LocationRequest):
