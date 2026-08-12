@@ -18,11 +18,13 @@ services:
   api:
     build: .
     container_name: nextbike-api
+    environment:
+      DATABASE_URL: postgresql+psycopg://nextbike:nextbike@postgres:5432/nextbike
     ports:
       - "8000:8000"
     volumes:
       - ./data:/app/data
-    command: ["python", "-m", "uvicorn", "script.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+    command: ["python", "-m", "uvicorn", "src.nextbike_prediction.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
     restart: unless-stopped
 
   pipeline:
