@@ -5,7 +5,7 @@ from sqlalchemy import select, func
 from requests import Session
 
 from src.nextbike_prediction.api.schema.station import StationResponse
-from src.nextbike_prediction.api.schema.stations_status import StationStatusResponse
+from src.nextbike_prediction.api.schema.stations_status import StatusResponse
 from src.nextbike_prediction.database.models.station import Station
 from src.nextbike_prediction.database.models.station_status import StationStatus
 from src.nextbike_prediction.api.dependencies import get_db
@@ -24,7 +24,7 @@ app.add_middleware(
 def read_root():
     return {"message": "Welcome to the API!"}
 
-@app.get("/status", response_model=list[StationStatusResponse])
+@app.get("/status", response_model=StatusResponse)
 def get_latest_station_status(db:Session = Depends(get_db)):
     """Fetch the latest station status """
     statement = (
