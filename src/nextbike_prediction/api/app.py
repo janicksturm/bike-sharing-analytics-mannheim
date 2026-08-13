@@ -1,6 +1,6 @@
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from requests import Session
 
@@ -24,9 +24,19 @@ app.add_middleware(
 def read_root():
     return {"message": "Welcome to the API!"}
 
-@app.get("/status")
-def get_status():
-    
+@app.get("/status", response_model=list[StationStatusResponse])
+def get_latest_station_status(db:Session = Depends(get_db)):
+    """Fetch the latest station status """
+    statement = (
+        select(StationStatus)
+        .order_by(StationStatus.timestamp.desc())
+        .limit(
+            select(func.count())
+            .select_from(Station)
+            .scalar_subquery()
+        )
+    )
+    return db.scalars(statement).all()
 
 @app.get("/stations", response_model=list[StationResponse])
 def get_stations(db: Session = Depends(get_db)):
