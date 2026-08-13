@@ -1,6 +1,6 @@
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import select, func
+from sqlalchemy import case, select, func
 
 from requests import Session
 
@@ -26,17 +26,53 @@ def read_root():
 
 @app.get("/status", response_model=StatusResponse)
 def get_latest_station_status(db:Session = Depends(get_db)):
-    """Fetch the latest station status """
-    statement = (
-        select(StationStatus)
-        .order_by(StationStatus.timestamp.desc())
-        .limit(
-            select(func.count())
-            .select_from(Station)
-            .scalar_subquery()
+    """Fetch the latest station status 
+
+    Return is a single row with the following fields:
+    - snapshot_time: timestamp of the latest snapshot
+    - total_bikes: total number of bikes available across all stations
+    - empty_stations: total number of stations with no bikes available
+    - avg_occupancy: average occupancy rate across all stations (bikes / (bikes + free_racks)), excluding stations with no bikes and no free racks
+    """
+    result = {}
+
+    result["snapshot_time"] = db.scalar(
+        select(
+            func.max(StationStatus.timestamp)
         )
     )
-    return db.scalars(statement).all()
+
+    result["total_bikes"] = db.scalar(
+        select(
+            func.sum(StationStatus.bikes)
+        )
+        .where(
+            StationStatus.timestamp == result["snapshot_time"]
+        )
+    )
+
+    result["empty_stations"] = db.scalar(
+        select(func.count())
+        .filter(StationStatus.bikes == 0)
+        .where(
+            StationStatus.timestamp == result["snapshot_time"]
+        )
+    )
+
+    result["avg_occupancy"] = db.scalar(
+        select(
+            func.avg(
+                StationStatus.bikes * 100.0
+                / (StationStatus.bikes + Station.bike_racks)
+            )
+        )
+        .where(
+            StationStatus.timestamp == result["snapshot_time"],
+            StationStatus.bikes + Station.bike_racks > 0
+        )
+    )
+
+    return result
 
 @app.get("/stations", response_model=list[StationResponse])
 def get_stations(db: Session = Depends(get_db)):
