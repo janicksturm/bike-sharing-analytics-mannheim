@@ -5,7 +5,7 @@ from sqlalchemy import select, func
 from requests import Session
 
 from src.nextbike_prediction.api.schema.station import StationResponse
-from src.nextbike_prediction.api.schema.stations_status import StatusResponse
+from src.nextbike_prediction.api.schema.status import StatusResponse
 from src.nextbike_prediction.database.models.station import Station
 from src.nextbike_prediction.database.models.station_status import StationStatus
 from src.nextbike_prediction.api.dependencies import get_db
