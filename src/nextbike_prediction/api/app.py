@@ -4,6 +4,8 @@ from sqlalchemy import case, select, func
 
 from requests import Session
 
+
+from src.nextbike_prediction.models.metrics import calculate_empty_rate
 from src.nextbike_prediction.api.schema.station import StationResponse
 from src.nextbike_prediction.api.schema.status import StatusResponse
 from src.nextbike_prediction.database.models.station import Station
@@ -51,13 +53,7 @@ def get_latest_station_status(db:Session = Depends(get_db)):
         )
     )
 
-    result["empty_stations"] = db.scalar(
-        select(func.count())
-        .filter(StationStatus.bikes == 0)
-        .where(
-            StationStatus.timestamp == result["snapshot_time"]
-        )
-    )
+    result["empty_stations"] = calculate_empty_rate(db, result["snapshot_time"])
 
     result["avg_occupancy"] = db.scalar(
         select(
