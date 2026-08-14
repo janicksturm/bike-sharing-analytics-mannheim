@@ -19,6 +19,14 @@ def calculate_empty_rate(db: Session, snapshot_time: datetime):
         )
     )
 
+def get_latest_snapshot(db: Session):
+    """Return the timestamp of the latest snapshot in the database."""
+    return db.scalar(
+        select(
+            func.max(StationStatus.timestamp)
+        )
+    )
+
 # We want to calculate how full each bike station is. 
 # First, we find out the total number of spaces by adding the number of bikes currently there and the number of free racks. 
 # Then, we calculate the percentage of those spaces that are occupied by bikes. 
