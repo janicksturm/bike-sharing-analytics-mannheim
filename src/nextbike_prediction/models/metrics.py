@@ -1,14 +1,22 @@
+import datetime
+
 import pandas as pd
+from requests import Session
+from sqlalchemy import func, select
+
+from src.nextbike_prediction.database.models.station_status import StationStatus
 
 """
 This module contains functions for calculating various metrics from the bike-sharing data.
 """
-def calculate_empty_rate(df: pd.DataFrame) -> pd.DataFrame:
+def calculate_empty_rate(db: Session, snapshot_time: datetime):
     """Calculate the percentage of time each station is empty."""
-    return (
-        df.groupby("uid")["bikes"]
-        .apply(lambda x: (x == 0).mean())
-        .reset_index(name="empty_rate")
+    return db.scalar(
+        select(func.count())
+        .filter(StationStatus.bikes == 0)
+        .where(
+            StationStatus.timestamp == snapshot_time
+        )
     )
 
 # We want to calculate how full each bike station is. 
