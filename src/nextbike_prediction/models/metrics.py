@@ -53,3 +53,14 @@ def get_avg_occupancy(db: Session, snapshot_time: datetime):
             StationStatus.bikes + Station.bike_racks > 0
         )
     )
+
+def get_total_capacity(db: Session, snapshot_time: datetime):
+    """Return the total capacity (bikes + free racks) across all stations at the latest snapshot."""
+    return db.scalar(
+        select(
+            func.sum(StationStatus.bikes + Station.bike_racks)
+        )
+        .where(
+            StationStatus.timestamp == snapshot_time
+        )
+    )
