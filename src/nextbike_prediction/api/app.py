@@ -5,7 +5,7 @@ from sqlalchemy import case, select, func
 from requests import Session
 
 
-from src.nextbike_prediction.models.metrics import calculate_empty_rate, get_latest_snapshot
+from src.nextbike_prediction.models.metrics import calculate_empty_rate, get_latest_snapshot, get_total_bikes, get_avg_occupancy
 from src.nextbike_prediction.api.schema.station import StationResponse
 from src.nextbike_prediction.api.schema.status import StatusResponse
 from src.nextbike_prediction.database.models.station import Station
@@ -39,30 +39,9 @@ def get_latest_station_status(db:Session = Depends(get_db)):
     result = {}
 
     result["snapshot_time"] = get_latest_snapshot(db)
-
-    result["total_bikes"] = db.scalar(
-        select(
-            func.sum(StationStatus.bikes)
-        )
-        .where(
-            StationStatus.timestamp == result["snapshot_time"]
-        )
-    )
-
+    result["total_bikes"] = get_total_bikes(db, result["snapshot_time"])
     result["empty_stations"] = calculate_empty_rate(db, result["snapshot_time"])
-
-    result["avg_occupancy"] = db.scalar(
-        select(
-            func.avg(
-                StationStatus.bikes * 100.0
-                / (StationStatus.bikes + Station.bike_racks)
-            )
-        )
-        .where(
-            StationStatus.timestamp == result["snapshot_time"],
-            StationStatus.bikes + Station.bike_racks > 0
-        )
-    )
+    result["avg_occupancy"] = get_avg_occupancy(db, result["snapshot_time"])
 
     return result
 
