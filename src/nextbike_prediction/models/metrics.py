@@ -40,6 +40,7 @@ def get_total_bikes(db: Session, snapshot_time: datetime):
     )
 
 def get_avg_occupancy(db: Session, snapshot_time: datetime):
+    """Return the average occupancy rate across all stations at the latest snapshot."""
     return db.scalar(
         select(
             func.avg(
