@@ -81,3 +81,19 @@ def get_station_status(db: Session, snapshot_time: datetime):
         StationStatus.timestamp == snapshot_time
     )
     return db.execute(statement).all()
+
+def get_bike_delta(db: Session, snapshot_time: datetime):
+    """Return the change in bike count for each station compared to the previous snapshot."""
+    previuos_bike = func.lag(StationStatus.bikes).over(
+        partition_by=StationStatus.station_uid,
+        order_by=StationStatus.timestamp
+    )
+
+    statement = select(
+        StationStatus.station_uid,
+        (StationStatus.bikes - previuos_bike).label("bike_delta")
+    ).where(
+        StationStatus.timestamp == snapshot_time
+    )
+
+    return db.execute(statement).all()
