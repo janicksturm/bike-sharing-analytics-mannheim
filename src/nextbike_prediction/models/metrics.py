@@ -2,7 +2,7 @@ import datetime
 
 import pandas as pd
 from requests import Session
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 
 from nextbike_prediction.database.models.station import Station
 from src.nextbike_prediction.database.models.station_status import StationStatus
@@ -64,3 +64,20 @@ def get_total_capacity(db: Session, snapshot_time: datetime):
             StationStatus.timestamp == snapshot_time
         )
     )
+
+def get_station_status(db: Session, snapshot_time: datetime):
+    """Return a list of stations with their current status (Empty, Low, Available)."""
+    status = case(
+        (StationStatus.bikes == 0, "Empty"),
+        (StationStatus.bikes <= 2, "Low"),
+        else_="Available",
+    ).label("status")
+
+    statement = select(
+        StationStatus.station_uid,
+        StationStatus.bikes,
+        status,
+    ).where(
+        StationStatus.timestamp == snapshot_time
+    )
+    return db.execute(statement).all()
