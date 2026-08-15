@@ -4,6 +4,7 @@ import pandas as pd
 from requests import Session
 from sqlalchemy import func, select
 
+from nextbike_prediction.database.models.station import Station
 from src.nextbike_prediction.database.models.station_status import StationStatus
 
 """
@@ -35,6 +36,20 @@ def get_total_bikes(db: Session, snapshot_time: datetime):
         )
         .where(
             StationStatus.timestamp == snapshot_time
+        )
+    )
+
+def get_avg_occupancy(db: Session, snapshot_time: datetime):
+    return db.scalar(
+        select(
+            func.avg(
+                StationStatus.bikes * 100.0
+                / (StationStatus.bikes + Station.bike_racks)
+            )
+        )
+        .where(
+            StationStatus.timestamp == snapshot_time,
+            StationStatus.bikes + Station.bike_racks > 0
         )
     )
 
