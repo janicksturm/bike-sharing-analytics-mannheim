@@ -53,16 +53,3 @@ def get_avg_occupancy(db: Session, snapshot_time: datetime):
             StationStatus.bikes + Station.bike_racks > 0
         )
     )
-
-# We want to calculate how full each bike station is. 
-# First, we find out the total number of spaces by adding the number of bikes currently there and the number of free racks. 
-# Then, we calculate the percentage of those spaces that are occupied by bikes. 
-# If there are no spaces available (total capacity is zero), we avoid dividing by zero 
-# by only calculating the percentage where the total capacity is greater than zero. 
-def calculate_station_occupancy_capacity(df: pd.DataFrame) -> pd.Series:
-    _capacity = df["total_capacity"].astype(float)
-    return (
-        (df["bikes"] / _capacity.where(_capacity > 0) * 100)
-        .fillna(0)
-        .round(1)
-    )
