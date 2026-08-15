@@ -27,6 +27,17 @@ def get_latest_snapshot(db: Session):
         )
     )
 
+def get_total_bikes(db: Session, snapshot_time: datetime):
+    """Return the total number of bikes available across all stations at the latest snapshot."""
+    return db.scalar(
+        select(
+            func.sum(StationStatus.bikes)
+        )
+        .where(
+            StationStatus.timestamp == snapshot_time
+        )
+    )
+
 # We want to calculate how full each bike station is. 
 # First, we find out the total number of spaces by adding the number of bikes currently there and the number of free racks. 
 # Then, we calculate the percentage of those spaces that are occupied by bikes. 
