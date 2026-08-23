@@ -3,9 +3,11 @@ import datetime
 import pandas as pd
 from requests import Session
 from sqlalchemy import case, func, select
+from sqlalchemy.orm import Session
 
 from nextbike_prediction.database.models.station import Station
 from src.nextbike_prediction.database.models.station_status import StationStatus
+from src.nextbike_prediction.database.models.station_metrics import StationMetrics
 
 """
 This module contains functions for calculating various metrics from the bike-sharing data.
@@ -84,16 +86,77 @@ def get_station_status(db: Session, snapshot_time: datetime):
 
 def get_bike_delta(db: Session, snapshot_time: datetime):
     """Return the change in bike count for each station compared to the previous snapshot."""
-    previuos_bike = func.lag(StationStatus.bikes).over(
-        partition_by=StationStatus.station_uid,
+    previous_bike = func.lag(StationStatus.bikes).over(
+        partition_by=StationStatus.uid,
         order_by=StationStatus.timestamp
     )
 
     statement = select(
-        StationStatus.station_uid,
-        (StationStatus.bikes - previuos_bike).label("bike_delta")
+        StationStatus.uid,
+        (StationStatus.bikes - previous_bike).label("bike_delta")
     ).where(
         StationStatus.timestamp == snapshot_time
     )
 
     return db.execute(statement).all()
+
+def get_latest_station_data(db: Session) -> pd.DataFrame:
+    """Return the latest snapshot data for all stations, including a demand_score.
+
+    Returns a DataFrame with columns:
+        uid, name, lat, lng, bikes, free_racks, occupancy_pct, demand_score
+    """
+    latest_ts = get_latest_snapshot(db)
+    if latest_ts is None:
+        return pd.DataFrame(columns=[
+            "uid", "name", "lat", "lng", "bikes", "free_racks",
+            "occupancy_pct", "demand_score",
+        ])
+
+
+    delta_rows = get_bike_delta(db, latest_ts)
+    demand_map = {row.uid: row.bike_delta for row in delta_rows}
+
+    statement = (
+        select(
+            Station.uid,
+            Station.name,
+            Station.lat,
+            Station.lng,
+            StationStatus.bikes,
+            StationStatus.free_racks,
+            StationStatus.occupancy_pct,
+        )
+        .join(Station, Station.uid == StationStatus.uid)
+        .where(StationStatus.timestamp == latest_ts)
+        .order_by(Station.uid)
+    )
+
+    rows = db.execute(statement).all()
+    df = pd.DataFrame(rows, columns=[
+        "uid", "name", "lat", "lng", "bikes", "free_racks", "occupancy_pct",
+    ])
+
+    if df.empty:
+        return df
+
+    df["demand_score"] = df["uid"].map(demand_map)
+    return df.reset_index(drop=True)
+
+def get_station_empty_rates(db: Session) -> pd.DataFrame:
+    """Return the empty rates for all stations based on historical data.
+
+    Returns a DataFrame with columns:
+        uid, empty_rate
+    """
+    statement = (
+        select(
+            StationMetrics.station_uid,
+            StationMetrics.empty_rate,
+        )
+        .order_by(StationMetrics.station_uid)
+    )
+
+    rows = db.execute(statement).all()
+    df = pd.DataFrame(rows, columns=["uid", "empty_rate"])
+    return df.reset_index(drop=True)
