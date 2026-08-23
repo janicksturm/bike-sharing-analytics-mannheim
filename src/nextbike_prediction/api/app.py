@@ -1,16 +1,17 @@
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import case, select, func
-
-from requests import Session
-
+from sqlalchemy.orm import Session
 
 from src.nextbike_prediction.models.metrics import calculate_empty_rate, get_latest_snapshot, get_total_bikes, get_avg_occupancy
 from src.nextbike_prediction.api.schema.station import StationResponse
 from src.nextbike_prediction.api.schema.status import StatusResponse
+from src.nextbike_prediction.api.schema.recommendation import RecommendationResponse
+from src.nextbike_prediction.api.schema.local_request import LocationRequest
 from src.nextbike_prediction.database.models.station import Station
 from src.nextbike_prediction.database.models.station_status import StationStatus
 from src.nextbike_prediction.api.dependencies import get_db
+from src.nextbike_prediction.services.recommendation_service import RecommendationService
 
 app = FastAPI()
 
@@ -52,14 +53,18 @@ def get_stations(db: Session = Depends(get_db)):
 
     return db.scalars(statement).all()
 
-# @app.post("/recommendations")
-# def get_recommendations(body: LocationRequest):
-#     """GPS-based: lat/lng → Top-5 station recommendations."""
-#     df = _get_data()
-#     if df is None:
-#         raise HTTPException(status_code=503, detail="Data not available")
-#     try:
-#         service = RecommendationService(df)
-#         return service.get_recommendations_for_location(body.lat, body.lng, top_n=5, exclude_uid=body.exclude_uid)
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
+@app.post("/recommendations", response_model=RecommendationResponse)
+def get_recommendations(body: LocationRequest, db: Session = Depends(get_db)):
+    """GPS-based: lat/lng → Top-5 station recommendations.
+
+    Scores nearby stations by combining bike availability, historical reliability,
+    walking distance, and recent demand trend. Results are logged to the database
+    for future analytics and ML model training.
+    """
+    try:
+        service = RecommendationService(db)
+        return service.get_recommendations_for_location(
+            body.lat, body.lng, top_n=5, exclude_uid=body.exclude_uid
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
