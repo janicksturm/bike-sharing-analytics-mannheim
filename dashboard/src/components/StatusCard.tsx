@@ -1,7 +1,7 @@
 
 interface StatusCardProps {
   label: string;
-  stat: { value: number; delta: number };
+  stat: { value: number; delta?: number | null };
   unit?: string;
   decimals?: number;
 }
@@ -9,8 +9,8 @@ interface StatusCardProps {
 function StatusCard({ label, stat, unit = "", decimals = 0 }: StatusCardProps) {
   const { value, delta } = stat;
 
-  const deltaPositive = delta > 0;
-  const deltaNeutral = delta === 0;
+  const deltaPositive = (delta ?? 0) > 0;
+  const deltaNeutral = delta == null || delta === 0;
 
   const deltaColor = deltaNeutral
     ? "text-gray-400"
