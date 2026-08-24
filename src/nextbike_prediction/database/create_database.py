@@ -8,6 +8,3 @@ from .models.station_metrics import StationMetrics
 
 def create_database() -> None:
     Base.metadata.create_all(bind=engine)
-
-
-create_database()
