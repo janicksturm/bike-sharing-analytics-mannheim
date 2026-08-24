@@ -1,13 +1,53 @@
 import datetime
 
 import pandas as pd
-from requests import Session
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
-from nextbike_prediction.database.models.station import Station
+from src.nextbike_prediction.database.models.station import Station
 from src.nextbike_prediction.database.models.station_status import StationStatus
 from src.nextbike_prediction.database.models.station_metrics import StationMetrics
+
+
+def compute_station_metrics(db: Session):
+    """Compute metrics for each station based on historical data.
+
+    Returns a list of dictionaries with keys:
+        uid, empty_rate, avg_bikes, avg_occupancy
+    """
+    latest_ts = get_latest_snapshot(db)
+    if latest_ts is None:
+        return []
+
+    statement = (
+        select(
+            StationStatus.uid,
+            func.avg(StationStatus.bikes).label("avg_bikes"),
+            func.avg(
+                case(
+                    (StationStatus.bikes + StationStatus.free_racks > 0,
+                     StationStatus.bikes * 100.0 / (StationStatus.bikes + StationStatus.free_racks)),
+                    else_=None,
+                )
+            ).label("avg_occupancy"),
+            (func.sum(case((StationStatus.bikes == 0, 1), else_=0)) / func.count()).label("empty_rate"),
+        )
+        .where(StationStatus.timestamp <= latest_ts)
+        .group_by(StationStatus.uid)
+    )
+
+    results = db.execute(statement).all()
+    metrics = [
+        {
+            "uid": row.uid,
+            "empty_rate": row.empty_rate,
+            "avg_bikes": row.avg_bikes,
+            "avg_occupancy": row.avg_occupancy,
+        }
+        for row in results
+    ]
+    return metrics
+
 
 """
 This module contains functions for calculating various metrics from the bike-sharing data.
@@ -50,6 +90,7 @@ def get_avg_occupancy(db: Session, snapshot_time: datetime):
                 / (StationStatus.bikes + Station.bike_racks)
             )
         )
+        .join(Station, Station.uid == StationStatus.uid)
         .where(
             StationStatus.timestamp == snapshot_time,
             StationStatus.bikes + Station.bike_racks > 0
@@ -62,6 +103,7 @@ def get_total_capacity(db: Session, snapshot_time: datetime):
         select(
             func.sum(StationStatus.bikes + Station.bike_racks)
         )
+        .join(Station, Station.uid == StationStatus.uid)
         .where(
             StationStatus.timestamp == snapshot_time
         )
@@ -76,7 +118,7 @@ def get_station_status(db: Session, snapshot_time: datetime):
     ).label("status")
 
     statement = select(
-        StationStatus.station_uid,
+        StationStatus.uid,
         StationStatus.bikes,
         status,
     ).where(
@@ -125,7 +167,11 @@ def get_latest_station_data(db: Session) -> pd.DataFrame:
             Station.lng,
             StationStatus.bikes,
             StationStatus.free_racks,
-            StationStatus.occupancy_pct,
+            case(
+                (StationStatus.bikes + StationStatus.free_racks > 0,
+                 StationStatus.bikes * 100.0 / (StationStatus.bikes + StationStatus.free_racks)),
+                else_=None,
+            ).label("occupancy_pct"),
         )
         .join(Station, Station.uid == StationStatus.uid)
         .where(StationStatus.timestamp == latest_ts)
@@ -151,10 +197,10 @@ def get_station_empty_rates(db: Session) -> pd.DataFrame:
     """
     statement = (
         select(
-            StationMetrics.station_uid,
+            StationMetrics.uid,
             StationMetrics.empty_rate,
         )
-        .order_by(StationMetrics.station_uid)
+        .order_by(StationMetrics.uid)
     )
 
     rows = db.execute(statement).all()
