@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import type { Recommendation, StationBasic } from "../types";
+import type { Recommendation, Station } from "../types";
 
 interface RecommendationMapProps {
   recommendations: Recommendation[];
-  allStations: StationBasic[];
+  allStations: Station[];
   userLat: number | null;
   userLng: number | null;
   onStationClick?: (uid: number) => void;
@@ -116,7 +116,7 @@ function RecommendationMap({recommendations, allStations, userLat, userLng, onSt
         fillOpacity: isSelected ? 0.9 : 0.3,
       });
 
-      marker.bindTooltip(`${station.name} · ${station.bikes} bikes`, {
+      marker.bindTooltip(station.name, {
         sticky: true,
         className: "leaflet-custom-tooltip",
       });
