@@ -2,7 +2,7 @@ import useFetch from "../hooks/useFetch";
 import StatusCard from "../components/StatusCard";
 import StationMap from "../components/StationMap";
 import StationRankingChart from "../components/StationRankingChart";
-import type { KpiSnapshot, StationResponse, Station } from "../types";
+import type { KpiSnapshot, Station } from "../types";
 
 const REFRESH_INTERVAL_MS = 30_000; // 30 seconds
 
@@ -22,12 +22,10 @@ function StatusPage() {
     "http://localhost:8000/status",
     REFRESH_INTERVAL_MS,
   );
-  const { data: apiResponse, error: stationsError } = useFetch<StationResponse>(
+  const { data: stations, error: stationsError } = useFetch<Station[]>(
     "http://localhost:8000/stations",
     REFRESH_INTERVAL_MS,
   );
-
-  const snapshotData = data ? ("status" in data ? (data as any).status : data) : null;
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
@@ -35,8 +33,8 @@ function StatusPage() {
         <div>
           <h2 className="text-lg font-semibold text-white">Status</h2>
           <p className="text-xs text-gray-500 mt-0.5">
-            {snapshotData
-              ? `Snapshot: ${formatSnapshotTime(snapshotData.snapshot_time)}`
+            {data
+              ? `Snapshot: ${formatSnapshotTime(data.snapshot_time)}`
               : "Fetching latest snapshot…"}
           </p>
         </div>
@@ -59,9 +57,9 @@ function StatusPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {!snapshotData
-          ? Array.from({ length: 4 }).map((_, i) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {!data
+          ? Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
               className="bg-gray-800 rounded-2xl px-6 py-5 h-36 animate-pulse border border-gray-700"
@@ -71,19 +69,15 @@ function StatusPage() {
             <>
               <StatusCard
                 label="Total Bikes"
-                stat={snapshotData.total_bikes}
-              />
-              <StatusCard
-                label="Available to Rent"
-                stat={snapshotData.available_to_rent}
+                stat={{ value: data.total_bikes, delta: null }}
               />
               <StatusCard
                 label="Empty Stations"
-                stat={snapshotData.empty_stations}
+                stat={{ value: data.empty_stations, delta: null }}
               />
               <StatusCard
                 label="Avg Occupancy"
-                stat={snapshotData.avg_occupancy}
+                stat={{ value: data.avg_occupancy, delta: null }}
                 unit="%"
                 decimals={1}
               />
@@ -97,22 +91,17 @@ function StatusPage() {
         </div>
 
         <div className="w-full">
-          <StationMap stations={apiResponse?.stations || []} />
+          <StationMap stations={stations || []} />
         </div>
       </div>
 
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">Station Ranking</h2>
+          <h2 className="text-lg font-semibold text-white">Station Ranking (by capacity)</h2>
         </div>
 
         <StationRankingChart
-          stations={apiResponse?.stations || []}
-          getBarColor={(station: Station) => {
-            if (station.bikes === 0) return "#ef4444";
-            if (station.bikes <= 2) return "#eab308";
-            return "#10b981";
-          }}
+          stations={stations || []}
         />
       </div>
     </main>
