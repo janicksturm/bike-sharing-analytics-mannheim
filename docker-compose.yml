@@ -15,6 +15,12 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nextbike -d nextbike"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   api:
     build: .
     container_name: nextbike-api
@@ -26,14 +32,22 @@ services:
       - ./data:/app/data
     command: ["python", "-m", "uvicorn", "src.nextbike_prediction.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   pipeline:
     build: .
     container_name: nextbike-pipeline
+    environment:
+      DATABASE_URL: postgresql+psycopg://nextbike:nextbike@postgres:5432/nextbike
     volumes:
       - ./data:/app/data
     command: ["python", "main.py"]
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   dashboard:
     build: ./dashboard
