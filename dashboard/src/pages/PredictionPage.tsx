@@ -3,11 +3,11 @@ import useFetch from "../hooks/useFetch";
 import useGeolocation from "../hooks/useGeolocation";
 import RecommendationMap from "../components/RecommendationMap";
 import RecommendationCard from "../components/RecommendationCard";
-import type { Recommendation, StationResponse, RecommendationResponse } from "../types";
+import type { Recommendation, Station, RecommendationResponse } from "../types";
 
 function PredictionPage() {
   const geo = useGeolocation();
-  const { data: stationsData } = useFetch<StationResponse>("http://localhost:8000/stations");
+  const { data: stationsData } = useFetch<Station[]>("http://localhost:8000/stations");
 
   // Recommendation state
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
@@ -44,7 +44,7 @@ function PredictionPage() {
   // Station-click handler: use clicked station's coords for recommendations
   const handleStationClick = useCallback(
     (uid: number) => {
-      const station = stationsData?.stations.find((s) => s.uid === uid);
+      const station = stationsData?.find((s) => s.uid === uid);
       if (!station) return;
 
       setSelectedStationUid(uid);
@@ -91,7 +91,7 @@ function PredictionPage() {
         {/* Recommendation Map */}
         <RecommendationMap
           recommendations={recommendations}
-          allStations={stationsData?.stations || []}
+          allStations={stationsData || []}
           userLat={gpsMode ? geo.lat : null}
           userLng={gpsMode ? geo.lng : null}
           onStationClick={handleStationClick}
