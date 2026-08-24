@@ -27,7 +27,7 @@ function RecommendationCard({ recommendation: rec }: RecommendationCardProps) {
           <div className="text-sm font-semibold text-white truncate">{rec.name}</div>
         </div>
         <span className="text-xs text-gray-400">
-          {rec.distance_meters.toFixed(0)}m
+          {(rec.distance_meters ?? 0).toFixed(0)}m
         </span>
       </div>
 
@@ -39,7 +39,7 @@ function RecommendationCard({ recommendation: rec }: RecommendationCardProps) {
         </div>
         <div>
           <div className="text-[10px] text-gray-400 uppercase">Empty Rate</div>
-          <div className="text-lg font-bold text-white">{rec.empty_rate.toFixed(1)}%</div>
+          <div className="text-lg font-bold text-white">{(rec.empty_rate ?? 0).toFixed(1)}%</div>
         </div>
         <div>
           <div className="text-[10px] text-gray-400 uppercase">Occ.</div>
