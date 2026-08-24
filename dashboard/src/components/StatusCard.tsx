@@ -19,7 +19,7 @@ function StatusCard({ label, stat, unit = "", decimals = 0 }: StatusCardProps) {
     : "text-red-400";
 
   const deltaArrow = deltaNeutral ? "—" : deltaPositive ? "▲" : "▼";
-  const deltaAbs = Math.abs(delta);
+  const deltaAbs = Math.abs(delta ?? 0);
 
   return (
     <div className="bg-gray-800 rounded-2xl px-6 py-5 flex flex-col gap-3 shadow-lg border border-gray-700 hover:border-emerald-600 transition-colors duration-200">
@@ -31,7 +31,7 @@ function StatusCard({ label, stat, unit = "", decimals = 0 }: StatusCardProps) {
 
       <div className="flex items-end gap-2">
         <span className="text-3xl font-bold text-white tracking-tight">
-          {value.toFixed(decimals)}
+          {(value ?? 0).toFixed(decimals)}
         </span>
         {unit && (
           <span className="text-sm text-gray-400 mb-1">{unit}</span>
