@@ -12,7 +12,6 @@ import type { Station } from "../types";
 
 interface StationRankingChartProps {
   stations: Station[];
-  getBarColor: (station: Station) => string;
 }
 
 interface CustomTooltipProps {
@@ -47,18 +46,18 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
           gap: "2px 12px",
         }}
       >
-        <span style={{ color: "#8b949e" }}>Bikes</span>
+        <span style={{ color: "#8b949e" }}>Total racks</span>
         <span style={{ fontWeight: 700, textAlign: "right" }}>
-          {station.bikes}
+          {station.bike_racks ?? "—"}
         </span>
       </div>
     </div>
   );
 }
 
-function StationRankingChart({ stations, getBarColor }: StationRankingChartProps) {
+function StationRankingChart({ stations }: StationRankingChartProps) {
   const rankedStations = useMemo(() => {
-    const sorted = [...stations].sort((a, b) => b.bikes - a.bikes);
+    const sorted = [...stations].sort((a, b) => (b.bike_racks ?? 0) - (a.bike_racks ?? 0));
     return sorted.slice(0, 10).map((s) => ({
       ...s,
       displayName: s.name.length > 22 ? s.name.slice(0, 20) + "…" : s.name,
@@ -104,20 +103,20 @@ function StationRankingChart({ stations, getBarColor }: StationRankingChartProps
             cursor={{ fill: "rgba(255,255,255,0.03)" }}
           />
           <Bar
-            dataKey="bikes"
+            dataKey="bike_racks"
             radius={[0, 6, 6, 0]}
+            fill="#6366f1"
             animationDuration={600}
             animationEasing="ease-out"
             shape={(props: RectangleProps & { payload?: Station & { displayName: string } }) => {
-              const { x, y, width, height, payload } = props;
-              const fill = payload ? getBarColor(payload) : "#6366f1";
+              const { x, y, width, height } = props;
               return (
                 <rect
                   x={x}
                   y={y}
                   width={width}
                   height={height}
-                  fill={fill}
+                  fill="#6366f1"
                   rx={6}
                   ry={6}
                 />
