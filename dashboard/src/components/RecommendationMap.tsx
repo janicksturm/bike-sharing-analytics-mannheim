@@ -38,11 +38,11 @@ function createRecommendationPopup(r: Recommendation): string {
         </tr>
         <tr>
           <td class="text-gray-400 py-0.5">Distance</td>
-          <td class="text-right font-bold text-white">${r.distance_meters.toFixed(0)}m</td>
+          <td class="text-right font-bold text-white">${(r.distance_meters ?? 0).toFixed(0)}m</td>
         </tr>
         <tr>
           <td class="text-gray-400 py-0.5">Empty Rate</td>
-          <td class="text-right font-bold text-white">${r.empty_rate.toFixed(1)}%</td>
+          <td class="text-right font-bold text-white">${(r.empty_rate ?? 0).toFixed(1)}%</td>
         </tr>
         <tr>
           <td class="text-gray-400 py-0.5">Score</td>
