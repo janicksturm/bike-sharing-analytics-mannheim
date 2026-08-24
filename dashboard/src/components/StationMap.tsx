@@ -7,10 +7,8 @@ interface StationMapProps {
   stations: Station[];
 }
 
-function getMarkerColor(station: Station): string {
-  if (station.bikes === 0) return "#ef4444";
-  if (station.bikes <= 2) return "#eab308";
-  return "#10b981";
+function getMarkerColor(): string {
+  return "#6366f1";
 }
 
 function createCircleMarker(station: Station) {
@@ -18,7 +16,7 @@ function createCircleMarker(station: Station) {
     radius: 6,
     color: "#1f2937",
     weight: 1.5,
-    fillColor: getMarkerColor(station),
+    fillColor: getMarkerColor(),
     fillOpacity: 0.9,
   });
 }
@@ -30,20 +28,8 @@ function createPopupContent(s: Station): string {
       <hr class="my-1.5 border-t border-gray-700" />
       <table class="w-full text-xs border-collapse">
         <tr>
-          <td class="text-gray-400 py-0.5">Bikes</td>
-          <td class="text-right font-bold text-white">${s.bikes}</td>
-        </tr>
-        <tr>
-          <td class="text-gray-400 py-0.5">Rentable</td>
-          <td class="text-right font-bold text-white">${s.bikes_available_to_rent}</td>
-        </tr>
-        <tr>
-          <td class="text-gray-400 py-0.5">Free racks</td>
-          <td class="text-right font-bold text-white">${s.free_racks}</td>
-        </tr>
-        <tr>
-          <td class="text-gray-400 py-0.5">Occupancy</td>
-          <td class="text-right font-bold text-white">${s.occupancy_pct}%</td>
+          <td class="text-gray-400 py-0.5">Total racks</td>
+          <td class="text-right font-bold text-white">${s.bike_racks ?? '—'}</td>
         </tr>
       </table>
     </div>`;
@@ -117,7 +103,7 @@ function useMapMarkers(leafletMap: React.RefObject<L.Map | null>, isLoaded: bool
     stations.forEach((station) => {
       const marker = createCircleMarker(station);
       marker.bindPopup(L.popup({ maxWidth: 240, className: "leaflet-custom-popup" }).setContent(createPopupContent(station)));
-      marker.bindTooltip(`${station.name} · ${station.bikes} bikes`, {
+      marker.bindTooltip(station.name, {
         sticky: true,
         className: "leaflet-custom-tooltip",
       });
@@ -151,5 +137,4 @@ function StationMap({ stations }: StationMapProps) {
   );
 }
 
-export type { Station };
 export default StationMap;
