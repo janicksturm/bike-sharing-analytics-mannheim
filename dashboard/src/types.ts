@@ -1,26 +1,12 @@
 // ── Shared type definitions ──────────────────────────────────────────────────
 
-/** Station data returned by the /stations endpoint (full detail). */
+/** Station data returned by the /stations endpoint. */
 export interface Station {
   uid: number;
   name: string;
   lat: number;
   lng: number;
-  bikes: number;
-  free_racks: number;
-  occupancy_pct: number;
-  bikes_available_to_rent: number;
-  status: "Available" | "Low" | "Empty";
-}
-
-/** Minimal station info used in pages that don't need every field. */
-export interface StationBasic {
-  uid: number;
-  name: string;
-  lat: number;
-  lng: number;
-  bikes: number;
-  status: string;
+  bike_racks: number | null;
 }
 
 /** A scored station recommendation from the backend. */
@@ -33,34 +19,21 @@ export interface Recommendation {
   bikes: number;
   free_racks: number;
   occupancy_pct: number;
-  status: string;
   distance_meters: number;
   empty_rate: number;
+  demand_score: number | null;
   recommendation_score: number;
-}
-
-/** KPI value + delta vs. previous snapshot. */
-export interface StatValue {
-  value: number;
-  delta: number;
 }
 
 /** Shape of the /status response. */
 export interface KpiSnapshot {
   snapshot_time: string;
-  total_bikes: StatValue;
-  available_to_rent: StatValue;
-  empty_stations: StatValue;
-  avg_occupancy: StatValue;
-}
-
-/** Shape of the /stations response. */
-export interface StationResponse {
-  stations: Station[];
+  total_bikes: number;
+  empty_stations: number;
+  avg_occupancy: number;
 }
 
 /** Shape of the /recommendations response. */
 export interface RecommendationResponse {
-  user_location?: { lat: number; lng: number };
   recommendations: Recommendation[];
 }
