@@ -60,6 +60,7 @@ function StationRankingChart({ stations }: StationRankingChartProps) {
     const sorted = [...stations].sort((a, b) => (b.bike_racks ?? 0) - (a.bike_racks ?? 0));
     return sorted.slice(0, 10).map((s) => ({
       ...s,
+      bike_racks: s.bike_racks ?? 0,
       displayName: s.name.length > 22 ? s.name.slice(0, 20) + "…" : s.name,
     }));
   }, [stations]);
