@@ -8,8 +8,8 @@ interface StationMapProps {
 }
 
 function getMarkerColor(pct: number): string {
-  if (pct >= 90) return "#22c55e";
-  if (pct >= 60) return "#f59e0b";
+  if (pct >= 75) return "#22c55e";
+  if (pct >= 10) return "#f59e0b";
   return "#ef4444";
 }
 
