@@ -48,10 +48,53 @@ def get_latest_station_status(db:Session = Depends(get_db)):
 
 @app.get("/stations", response_model=list[StationResponse])
 def get_stations(db: Session = Depends(get_db)):
-    """Fetch all stations from the database."""
-    statement = select(Station)
+    """Fetch all stations with their latest live status."""
+    latest_ts = db.scalar(
+        select(func.max(StationStatus.timestamp))
+    )
 
-    return db.scalars(statement).all()
+    if latest_ts is None:
+        raise HTTPException(status_code=404, detail="No station status data available.")
+
+    statement = (
+        select(
+            Station.uid,
+            Station.name,
+            Station.lat,
+            Station.lng,
+            Station.bike_racks,
+            StationStatus.bikes,
+            StationStatus.free_racks,
+            case(
+                (
+                    StationStatus.bikes + StationStatus.free_racks > 0,
+                    StationStatus.bikes * 100.0
+                    / (StationStatus.bikes + StationStatus.free_racks),
+                ),
+                else_=None,
+            ).label("occupancy_pct"),
+        )
+        .outerjoin(
+            StationStatus,
+            (Station.uid == StationStatus.uid) & (StationStatus.timestamp == latest_ts),
+        )
+        .order_by(Station.uid)
+    )
+
+    rows = db.execute(statement).all()
+    return [
+        StationResponse(
+            uid=row.uid,
+            name=row.name,
+            lat=row.lat,
+            lng=row.lng,
+            bike_racks=row.bike_racks,
+            bikes=row.bikes,
+            free_racks=row.free_racks,
+            occupancy_pct=round(float(row.occupancy_pct), 1) if row.occupancy_pct is not None else None,
+        )
+        for row in rows
+    ]
 
 @app.post("/recommendations", response_model=RecommendationResponse)
 def get_recommendations(body: LocationRequest, db: Session = Depends(get_db)):
