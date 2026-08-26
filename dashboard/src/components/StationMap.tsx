@@ -7,8 +7,10 @@ interface StationMapProps {
   stations: Station[];
 }
 
-function getMarkerColor(): string {
-  return "#6366f1";
+function getMarkerColor(pct: number): string {
+  if (pct >= 90) return "#ef4444";
+  if (pct >= 60) return "#f59e0b";
+  return "#22c55e";
 }
 
 function createCircleMarker(station: Station) {
@@ -16,7 +18,7 @@ function createCircleMarker(station: Station) {
     radius: 6,
     color: "#1f2937",
     weight: 1.5,
-    fillColor: getMarkerColor(),
+    fillColor: getMarkerColor(station.occupancy_pct != null ? Math.round(station.occupancy_pct * 100) : 0),
     fillOpacity: 0.9,
   });
 }
