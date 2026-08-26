@@ -8,9 +8,9 @@ interface StationMapProps {
 }
 
 function getMarkerColor(pct: number): string {
-  if (pct >= 90) return "#ef4444";
+  if (pct >= 90) return "#22c55e";
   if (pct >= 60) return "#f59e0b";
-  return "#22c55e";
+  return "#ef4444";
 }
 
 function createCircleMarker(station: Station) {
@@ -18,20 +18,40 @@ function createCircleMarker(station: Station) {
     radius: 6,
     color: "#1f2937",
     weight: 1.5,
-    fillColor: getMarkerColor(station.occupancy_pct != null ? Math.round(station.occupancy_pct * 100) : 0),
+    fillColor: getMarkerColor(station.occupancy_pct ?? 0),
     fillOpacity: 0.9,
   });
 }
 
 function createPopupContent(s: Station): string {
+  const occ = s.occupancy_pct;
+  const occText = occ != null ? `${occ.toFixed(1)}%` : '—';
+  const occStyle = occ != null ? `color:${getMarkerColor(occ)};font-weight:bold` : 'color:#9ca3af';
+
+  const bikesText = s.bikes != null ? String(s.bikes) : '—';
+  const freeText  = s.free_racks != null ? String(s.free_racks) : '—';
+  const racksText = s.bike_racks != null ? String(s.bike_racks) : '—';
+
   return `
-    <div class="font-sans min-w-[190px] text-gray-200 bg-gray-900 rounded-xl px-3.5 py-3">
+    <div class="font-sans min-w-[200px] text-gray-200 bg-gray-900 rounded-xl px-3.5 py-3">
       <b class="text-sm text-white">${s.name}</b>
       <hr class="my-1.5 border-t border-gray-700" />
       <table class="w-full text-xs border-collapse">
         <tr>
-          <td class="text-gray-400 py-0.5">Total racks</td>
-          <td class="text-right font-bold text-white">${s.bike_racks ?? '—'}</td>
+          <td class="text-gray-400 py-0.5">Bikes available</td>
+          <td class="text-right font-bold text-white">${bikesText}</td>
+        </tr>
+        <tr>
+          <td class="text-gray-400 py-0.5">Free racks</td>
+          <td class="text-right font-bold text-white">${freeText}</td>
+        </tr>
+        <tr>
+          <td class="text-gray-400 py-0.5">Occupancy</td>
+          <td class="text-right" style="${occStyle}">${occText}</td>
+        </tr>
+        <tr>
+          <td class="text-gray-400 py-0.5 pt-1.5 border-t border-gray-800">Total racks</td>
+          <td class="text-right font-bold text-gray-400 pt-1.5 border-t border-gray-800">${racksText}</td>
         </tr>
       </table>
     </div>`;
