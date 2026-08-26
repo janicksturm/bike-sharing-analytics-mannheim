@@ -7,6 +7,9 @@ export interface Station {
   lat: number;
   lng: number;
   bike_racks: number | null;
+  bikes: number | null;
+  free_racks: number | null;
+  occupancy_pct: number | null;
 }
 
 /** A scored station recommendation from the backend. */
