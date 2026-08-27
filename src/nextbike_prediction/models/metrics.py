@@ -70,6 +70,13 @@ def get_latest_snapshot(db: Session):
         )
     )
 
+def get_previous_snapshot(db: Session, latest_ts: datetime):
+    """Return the timestamp of the snapshot immediately preceding latest_ts."""
+    return db.scalar(
+        select(func.max(StationStatus.timestamp))
+        .where(StationStatus.timestamp < latest_ts)
+    )
+
 def get_total_bikes(db: Session, snapshot_time: datetime):
     """Return the total number of bikes available across all stations at the latest snapshot."""
     return db.scalar(

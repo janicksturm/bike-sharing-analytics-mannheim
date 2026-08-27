@@ -69,15 +69,15 @@ function StatusPage() {
             <>
               <StatusCard
                 label="Total Bikes"
-                stat={{ value: data.total_bikes, delta: null }}
+                stat={{ value: data.total_bikes, delta: data.total_bikes_delta ?? null }}
               />
               <StatusCard
                 label="Empty Stations"
-                stat={{ value: data.empty_stations, delta: null }}
+                stat={{ value: data.empty_stations, delta: data.empty_stations_delta ?? null }}
               />
               <StatusCard
                 label="Avg Occupancy"
-                stat={{ value: data.avg_occupancy, delta: null }}
+                stat={{ value: data.avg_occupancy, delta: data.avg_occupancy_delta ?? null }}
                 unit="%"
                 decimals={1}
               />

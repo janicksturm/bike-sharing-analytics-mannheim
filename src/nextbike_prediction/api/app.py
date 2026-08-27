@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import case, select, func
 from sqlalchemy.orm import Session
 
-from src.nextbike_prediction.models.metrics import calculate_empty_rate, get_latest_snapshot, get_total_bikes, get_avg_occupancy
+from src.nextbike_prediction.models.metrics import calculate_empty_rate, get_latest_snapshot, get_previous_snapshot, get_total_bikes, get_avg_occupancy
 from src.nextbike_prediction.api.schema.station import StationResponse
 from src.nextbike_prediction.api.schema.status import StatusResponse
 from src.nextbike_prediction.api.schema.recommendation import RecommendationResponse
@@ -39,10 +39,22 @@ def get_latest_station_status(db:Session = Depends(get_db)):
     """
     result = {}
 
-    result["snapshot_time"] = get_latest_snapshot(db)
-    result["total_bikes"] = get_total_bikes(db, result["snapshot_time"])
-    result["empty_stations"] = calculate_empty_rate(db, result["snapshot_time"])
-    result["avg_occupancy"] = get_avg_occupancy(db, result["snapshot_time"])
+    latest_ts = get_latest_snapshot(db)
+    result["snapshot_time"] = latest_ts
+    result["total_bikes"] = get_total_bikes(db, latest_ts)
+    result["empty_stations"] = calculate_empty_rate(db, latest_ts)
+    result["avg_occupancy"] = get_avg_occupancy(db, latest_ts)
+
+    prev_ts = get_previous_snapshot(db, latest_ts) if latest_ts else None
+    if prev_ts is not None:
+        prev_bikes = get_total_bikes(db, prev_ts)
+        prev_empty = calculate_empty_rate(db, prev_ts)
+        prev_occ = get_avg_occupancy(db, prev_ts)
+        result["total_bikes_delta"] = (result["total_bikes"] or 0) - (prev_bikes or 0)
+        result["empty_stations_delta"] = (result["empty_stations"] or 0) - (prev_empty or 0)
+        result["avg_occupancy_delta"] = round(
+            (result["avg_occupancy"] or 0.0) - (prev_occ or 0.0), 1
+        )
 
     return result
 

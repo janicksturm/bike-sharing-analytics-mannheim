@@ -32,8 +32,11 @@ export interface Recommendation {
 export interface KpiSnapshot {
   snapshot_time: string;
   total_bikes: number;
+  total_bikes_delta: number | null;
   empty_stations: number;
+  empty_stations_delta: number | null;
   avg_occupancy: number;
+  avg_occupancy_delta: number | null;
 }
 
 /** Shape of the /recommendations response. */
