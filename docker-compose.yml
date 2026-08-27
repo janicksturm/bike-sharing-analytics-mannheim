@@ -30,7 +30,7 @@ services:
       - "8000:8000"
     volumes:
       - ./data:/app/data
-    command: ["python", "-m", "uvicorn", "src.nextbike_prediction.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+    command: ["uv", "run", "uvicorn", "src.nextbike_prediction.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
     restart: unless-stopped
     depends_on:
       postgres:
@@ -43,7 +43,7 @@ services:
       DATABASE_URL: postgresql+psycopg://nextbike:nextbike@postgres:5432/nextbike
     volumes:
       - ./data:/app/data
-    command: ["python", "main.py"]
+    command: ["uv", "run", "python", "main.py"]
     restart: unless-stopped
     depends_on:
       postgres:
