@@ -12,6 +12,7 @@ import type { Station } from "../types";
 
 interface StationRankingChartProps {
   stations: Station[];
+  getBarColor?: (station: Station) => string;
 }
 
 interface CustomTooltipProps {
@@ -46,21 +47,20 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
           gap: "2px 12px",
         }}
       >
-        <span style={{ color: "#8b949e" }}>Total racks</span>
+        <span style={{ color: "#8b949e" }}>Bikes</span>
         <span style={{ fontWeight: 700, textAlign: "right" }}>
-          {station.bike_racks ?? "—"}
+          {station.bikes}
         </span>
       </div>
     </div>
   );
 }
 
-function StationRankingChart({ stations }: StationRankingChartProps) {
+function StationRankingChart({ stations, getBarColor = () => "#6366f1" }: StationRankingChartProps) {
   const rankedStations = useMemo(() => {
-    const sorted = [...stations].sort((a, b) => (b.bike_racks ?? 0) - (a.bike_racks ?? 0));
+    const sorted = [...stations].sort((a, b) => (b.bikes || 0) - (a.bikes || 0));
     return sorted.slice(0, 10).map((s) => ({
       ...s,
-      bike_racks: s.bike_racks ?? 0,
       displayName: s.name.length > 22 ? s.name.slice(0, 20) + "…" : s.name,
     }));
   }, [stations]);
@@ -104,20 +104,20 @@ function StationRankingChart({ stations }: StationRankingChartProps) {
             cursor={{ fill: "rgba(255,255,255,0.03)" }}
           />
           <Bar
-            dataKey="bike_racks"
+            dataKey="bikes"
             radius={[0, 6, 6, 0]}
-            fill="#6366f1"
             animationDuration={600}
             animationEasing="ease-out"
             shape={(props: RectangleProps & { payload?: Station & { displayName: string } }) => {
-              const { x, y, width, height } = props;
+              const { x, y, width, height, payload } = props;
+              const fill = payload ? getBarColor(payload) : "#6366f1";
               return (
                 <rect
                   x={x}
                   y={y}
                   width={width}
                   height={height}
-                  fill="#6366f1"
+                  fill={fill}
                   rx={6}
                   ry={6}
                 />

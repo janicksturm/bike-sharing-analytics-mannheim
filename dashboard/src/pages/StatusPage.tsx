@@ -97,11 +97,12 @@ function StatusPage() {
 
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">Station Ranking (by capacity)</h2>
+          <h2 className="text-lg font-semibold text-white">Station Ranking</h2>
         </div>
 
         <StationRankingChart
           stations={stations || []}
+          getBarColor={() => "#10b981"}
         />
       </div>
     </main>
