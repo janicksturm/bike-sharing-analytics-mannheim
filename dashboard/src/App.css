@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* ── Map tiles: CSS dark mode filter ─────────────────────────────────────── */
+.map-tiles-dark {
+  filter: invert(100%) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6);
+}
+
 /* ── Leaflet custom popup ─────────────────────────────────────────────────── */
 .leaflet-popup-content-wrapper {
   background: #161b22 !important;
