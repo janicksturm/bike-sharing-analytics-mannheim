@@ -111,7 +111,7 @@ function RecommendationMap({recommendations, allStations, userLat, userLng, onSt
       const isSelected = station.uid === selectedStationUid;
       const marker = L.circleMarker([station.lat, station.lng], {
         radius: isSelected ? 8 : 4,
-        color: isSelected ? "#3b82f6" : "#aeb3ba",
+        color: isSelected ? "#3b82f6" : "#dbe8fb",
         weight: isSelected ? 2 : 1,
         fillColor: isSelected ? "#3b82f6" : "#4b5563",
         fillOpacity: isSelected ? 0.9 : 0.3,
