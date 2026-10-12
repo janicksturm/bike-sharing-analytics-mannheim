@@ -135,16 +135,26 @@ def get_station_status(db: Session, snapshot_time: datetime):
 
 def get_bike_delta(db: Session, snapshot_time: datetime):
     """Return the change in bike count for each station compared to the previous snapshot."""
-    previous_bike = func.lag(StationStatus.bikes).over(
-        partition_by=StationStatus.uid,
-        order_by=StationStatus.timestamp
-    )
+    prev_ts = get_previous_snapshot(db, snapshot_time)
+    if prev_ts is None:
+        return []
 
-    statement = select(
-        StationStatus.uid,
-        (StationStatus.bikes - previous_bike).label("bike_delta")
-    ).where(
-        StationStatus.timestamp == snapshot_time
+    curr = (
+        select(StationStatus.uid, StationStatus.bikes.label("curr_bikes"))
+        .where(StationStatus.timestamp == snapshot_time)
+        .subquery()
+    )
+    prev = (
+        select(StationStatus.uid, StationStatus.bikes.label("prev_bikes"))
+        .where(StationStatus.timestamp == prev_ts)
+        .subquery()
+    )
+    statement = (
+        select(
+            curr.c.uid,
+            (curr.c.curr_bikes - func.coalesce(prev.c.prev_bikes, curr.c.curr_bikes)).label("bike_delta"),
+        )
+        .outerjoin(prev, curr.c.uid == prev.c.uid)
     )
 
     return db.execute(statement).all()
@@ -197,16 +207,23 @@ def get_latest_station_data(db: Session) -> pd.DataFrame:
     return df.reset_index(drop=True)
 
 def get_station_empty_rates(db: Session) -> pd.DataFrame:
-    """Return the empty rates for all stations based on historical data.
+    """Return the latest empty rates for all stations.
 
     Returns a DataFrame with columns:
         uid, empty_rate
     """
+    latest_ts = db.scalar(
+        select(func.max(StationMetrics.timestamp))
+    )
+    if latest_ts is None:
+        return pd.DataFrame(columns=["uid", "empty_rate"])
+
     statement = (
         select(
             StationMetrics.uid,
             StationMetrics.empty_rate,
         )
+        .where(StationMetrics.timestamp == latest_ts)
         .order_by(StationMetrics.uid)
     )
 
