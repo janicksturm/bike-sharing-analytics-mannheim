@@ -9,9 +9,7 @@ def get_data_as_objects(url: str):
         response = requests.get(url, timeout=10)
         response.raise_for_status()
 
-        station_data = TypeAdapter(list[BikeStation]).validate_python(response.json())
-
-        return station_data
+        return TypeAdapter(list[BikeStation]).validate_python(response.json())
 
     except requests.Timeout:
         print("Request timed out")
