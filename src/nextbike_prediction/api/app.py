@@ -23,10 +23,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to the API!"}
-
 @app.get("/status", response_model=StatusResponse)
 def get_latest_station_status(db:Session = Depends(get_db)):
     """Fetch the latest station status 
