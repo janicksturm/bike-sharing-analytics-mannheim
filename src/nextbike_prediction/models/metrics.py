@@ -30,7 +30,7 @@ def compute_station_metrics(db: Session):
                     else_=None,
                 )
             ).label("avg_occupancy"),
-            (func.sum(case((StationStatus.bikes == 0, 1), else_=0)) / func.count()).label("empty_rate"),
+            func.avg(case((StationStatus.bikes == 0, 1.0), else_=0.0)).label("empty_rate"),
         )
         .where(StationStatus.timestamp <= latest_ts)
         .group_by(StationStatus.uid)
