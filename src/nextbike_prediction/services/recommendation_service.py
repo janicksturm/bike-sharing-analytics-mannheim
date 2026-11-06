@@ -36,7 +36,7 @@ class RecommendationService:
                 "free_racks": int(row["free_racks"]) if pd.notna(row.get("free_racks")) else 0,
                 "occupancy_pct": round(float(row["occupancy_pct"]), 1) if pd.notna(row.get("occupancy_pct")) else 0.0,
                 "distance_meters": round(float(row["distance_meters"]), 1),
-                "empty_rate": round(float(row["empty_rate"]), 1),
+                "empty_rate": round(float(row["empty_rate"]) * 100, 1),
                 "demand_score": round(float(row["demand_score"]), 2) if pd.notna(row.get("demand_score")) else None,
                 "recommendation_score": round(float(row["recommendation_score"]), 4),
             })
