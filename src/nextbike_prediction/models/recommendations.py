@@ -29,7 +29,11 @@ def score_stations_for_user(latest_data: pd.DataFrame, empty_rates: pd.DataFrame
         return pd.DataFrame()
 
     candidates = latest_data.merge(empty_rates, on="uid", how="left")
-    candidates["empty_rate"] = candidates["empty_rate"].fillna(0)
+    # Stations without history get the median empty rate (neutral)
+    median_empty_rate = candidates["empty_rate"].median()
+    candidates["empty_rate"] = candidates["empty_rate"].fillna(
+        median_empty_rate if pd.notna(median_empty_rate) else 0
+    )
 
     if exclude_uid is not None:
         candidates = candidates[candidates["uid"] != exclude_uid].copy()
@@ -50,8 +54,8 @@ def score_stations_for_user(latest_data: pd.DataFrame, empty_rates: pd.DataFrame
     if candidates.empty:
         return pd.DataFrame()
 
-    # Use demand_score as trend indicator (negative demand_score = bikes returning = good)
-    candidates["demand_trend"] = -candidates["demand_score"].fillna(0)
+    # demand_score is the bike delta (curr - prev): positive = bikes returning = good
+    candidates["demand_trend"] = candidates["demand_score"].fillna(0)
 
     # Normalize all factors to [0, 1] so weights reflect true importance
     # Weights: bikes 35%, reliability 25%, proximity 25%, trend 15%
