@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timedelta
 
 import pandas as pd
 from sqlalchemy import case, func, select
@@ -7,6 +7,12 @@ from sqlalchemy.orm import Session
 from src.nextbike_prediction.database.models.station import Station
 from src.nextbike_prediction.database.models.station_status import StationStatus
 from src.nextbike_prediction.database.models.station_metrics import StationMetrics
+
+# Demand trend: compare the latest snapshot with one taken 60–90 min earlier.
+# If no snapshot falls into that window (pipeline gap), no trend is reported,
+# so gaps don't turn into multi-hour deltas.
+TREND_WINDOW_MIN = timedelta(minutes=60)
+TREND_WINDOW_MAX = timedelta(minutes=90)
 
 
 def compute_station_metrics(db: Session):
@@ -133,9 +139,26 @@ def get_station_status(db: Session, snapshot_time: datetime):
     )
     return db.execute(statement).all()
 
-def get_bike_delta(db: Session, snapshot_time: datetime):
-    """Return the change in bike count for each station compared to the previous snapshot."""
-    prev_ts = get_previous_snapshot(db, snapshot_time)
+def get_trend_reference_snapshot(
+    db: Session,
+    latest_ts: datetime,
+    min_age: timedelta = TREND_WINDOW_MIN,
+    max_age: timedelta = TREND_WINDOW_MAX,
+):
+    """Return the most recent snapshot that is between min_age and max_age
+    older than latest_ts, or None if there is no snapshot in that window."""
+    return db.scalar(
+        select(func.max(StationStatus.timestamp))
+        .where(
+            StationStatus.timestamp <= latest_ts - min_age,
+            StationStatus.timestamp >= latest_ts - max_age,
+        )
+    )
+
+def get_bike_delta(db: Session, snapshot_time: datetime, reference_time: datetime | None = None):
+    """Return the change in bike count for each station between reference_time
+    and snapshot_time. Defaults to the immediately preceding snapshot."""
+    prev_ts = reference_time if reference_time is not None else get_previous_snapshot(db, snapshot_time)
     if prev_ts is None:
         return []
 
@@ -162,6 +185,10 @@ def get_bike_delta(db: Session, snapshot_time: datetime):
 def get_latest_station_data(db: Session) -> pd.DataFrame:
     """Return the latest snapshot data for all stations, including a demand_score.
 
+    demand_score is the bike delta over the fixed trend window
+    (TREND_WINDOW_MIN–TREND_WINDOW_MAX before the latest snapshot); it is NaN
+    when no snapshot exists in that window.
+
     Returns a DataFrame with columns:
         uid, name, lat, lng, bikes, free_racks, occupancy_pct, demand_score
     """
@@ -172,8 +199,8 @@ def get_latest_station_data(db: Session) -> pd.DataFrame:
             "occupancy_pct", "demand_score",
         ])
 
-
-    delta_rows = get_bike_delta(db, latest_ts)
+    reference_ts = get_trend_reference_snapshot(db, latest_ts)
+    delta_rows = get_bike_delta(db, latest_ts, reference_ts) if reference_ts is not None else []
     demand_map = {row.uid: row.bike_delta for row in delta_rows}
 
     statement = (

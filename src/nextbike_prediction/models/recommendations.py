@@ -62,7 +62,8 @@ def score_stations_for_user(latest_data: pd.DataFrame, empty_rates: pd.DataFrame
     if candidates.empty:
         return pd.DataFrame()
 
-    # demand_score is the bike delta (curr - prev): positive = bikes returning = good
+    # demand_score is the bike delta over the last 60–90 min (NaN if unknown):
+    # positive = bikes returning = good
     candidates["demand_trend"] = candidates["demand_score"].fillna(0)
 
     bike_score = 1 - np.exp(-candidates["bikes"] / BIKE_SATURATION)
