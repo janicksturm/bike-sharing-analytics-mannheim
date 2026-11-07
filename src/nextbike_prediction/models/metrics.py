@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
 import pandas as pd
-from sqlalchemy import case, func, select
+from sqlalchemy import Integer, case, cast, extract, func, select
 from sqlalchemy.orm import Session
 
 from src.nextbike_prediction.database.models.station import Station
@@ -13,6 +13,10 @@ from src.nextbike_prediction.database.models.station_metrics import StationMetri
 # so gaps don't turn into multi-hour deltas.
 TREND_WINDOW_MIN = timedelta(minutes=60)
 TREND_WINDOW_MAX = timedelta(minutes=90)
+
+# Time-of-day empty rate: minimum observations a station needs in the
+# (hour x weekday/weekend) slot before the slot value replaces its overall rate.
+MIN_SLOT_OBSERVATIONS = 4
 
 
 def compute_station_metrics(db: Session):
@@ -233,8 +237,71 @@ def get_latest_station_data(db: Session) -> pd.DataFrame:
     df["demand_score"] = df["uid"].map(demand_map)
     return df.reset_index(drop=True)
 
-def get_station_empty_rates(db: Session) -> pd.DataFrame:
-    """Return the latest empty rates for all stations.
+def get_slot_empty_rates(db: Session, reference_time: datetime) -> pd.DataFrame:
+    """Return per-station empty rates for the time slot of reference_time.
+
+    A slot is the hour of day combined with weekday vs. weekend, so a station
+    that is regularly empty at 8:00 on weekdays gets a high rate at that time
+    only. Hours are evaluated in the timezone the timestamps are stored in.
+    Only snapshots up to reference_time are considered.
+
+    Returns a DataFrame with columns:
+        uid, empty_rate, observations
+    """
+    hour = cast(extract("hour", StationStatus.timestamp), Integer)
+    day_of_week = cast(extract("dow", StationStatus.timestamp), Integer)  # 0 = Sunday
+    is_weekend = day_of_week.in_([0, 6])
+    slot_is_weekend = reference_time.weekday() >= 5  # Python: 5 = Sat, 6 = Sun
+
+    statement = (
+        select(
+            StationStatus.uid,
+            func.avg(case((StationStatus.bikes == 0, 1.0), else_=0.0)).label("empty_rate"),
+            func.count().label("observations"),
+        )
+        .where(
+            hour == reference_time.hour,
+            is_weekend if slot_is_weekend else ~is_weekend,
+            StationStatus.timestamp <= reference_time,
+        )
+        .group_by(StationStatus.uid)
+        .order_by(StationStatus.uid)
+    )
+    rows = db.execute(statement).all()
+    return pd.DataFrame(rows, columns=["uid", "empty_rate", "observations"])
+
+def get_station_empty_rates(
+    db: Session,
+    reference_time: datetime | None = None,
+    min_slot_observations: int = MIN_SLOT_OBSERVATIONS,
+) -> pd.DataFrame:
+    """Return the empty rate (0..1) for every station.
+
+    With reference_time, the time-slot rate is used for stations with at least
+    min_slot_observations in that slot; all others fall back to their overall
+    rate. Without reference_time, only the overall rate is returned.
+
+    Returns a DataFrame with columns:
+        uid, empty_rate
+    """
+    overall = get_overall_empty_rates(db)
+    if reference_time is None:
+        return overall
+
+    slot = get_slot_empty_rates(db, reference_time)
+    slot = slot[slot["observations"] >= min_slot_observations]
+    if slot.empty:
+        return overall
+
+    combined = (
+        slot.set_index("uid")["empty_rate"].astype(float)
+        .combine_first(overall.set_index("uid")["empty_rate"].astype(float))
+        .sort_index()
+    )
+    return combined.rename_axis("uid").reset_index(name="empty_rate")
+
+def get_overall_empty_rates(db: Session) -> pd.DataFrame:
+    """Return the latest persisted (all-time) empty rates for all stations.
 
     Returns a DataFrame with columns:
         uid, empty_rate

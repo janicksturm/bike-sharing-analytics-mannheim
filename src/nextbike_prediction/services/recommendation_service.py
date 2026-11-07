@@ -1,7 +1,11 @@
 import pandas as pd
 from sqlalchemy.orm import Session
 
-from src.nextbike_prediction.models.metrics import get_latest_station_data, get_station_empty_rates
+from src.nextbike_prediction.models.metrics import (
+    get_latest_snapshot,
+    get_latest_station_data,
+    get_station_empty_rates,
+)
 from src.nextbike_prediction.models.recommendations import score_stations_for_user
 
 class RecommendationService:
@@ -13,7 +17,9 @@ class RecommendationService:
     def get_recommendations_for_location(self, lat: float, lng: float, top_n: int = 5, exclude_uid: int | None = None) -> dict:
         """GPS-based: Return top-N station recommendations for a user location."""
         latest_data = get_latest_station_data(self.db)
-        empty_rates = get_station_empty_rates(self.db)
+        # Empty rate for the time slot of the latest data (hour x weekday/weekend),
+        # falling back to the overall rate where the slot has too few observations
+        empty_rates = get_station_empty_rates(self.db, reference_time=get_latest_snapshot(self.db))
 
         scored = score_stations_for_user(
             latest_data,
