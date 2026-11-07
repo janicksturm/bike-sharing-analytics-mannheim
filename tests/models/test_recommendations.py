@@ -1,7 +1,12 @@
 import pandas as pd
 import pytest
 
-from src.nextbike_prediction.models.recommendations import score_stations_for_user, trend_score
+from src.nextbike_prediction.models.recommendations import (
+    SEARCH_RADII_METERS,
+    recommend_stations,
+    score_stations_for_user,
+    trend_score,
+)
 
 latest_data = pd.DataFrame({
     "uid": [1, 2, 3, 4, 5, 6],
@@ -244,3 +249,75 @@ def test_small_trend_does_not_outweigh_700m_walk():
     )
     result = score_stations_for_user(data, make_rates([0.1, 0.1]), USER_LAT, USER_LNG)
     assert result.iloc[0]["name"] == "Here"
+
+
+# ── Expanding search radius (issue #10) ─────────────────────────────
+
+def _lat_at(meters: float) -> float:
+    return USER_LAT + meters / METERS_PER_DEG_LAT
+
+
+def test_max_distance_is_configurable():
+    data = make_stations(name=["1200m"], lat=[_lat_at(1200)], lng=[USER_LNG])
+    assert score_stations_for_user(data, make_rates([0.1]), USER_LAT, USER_LNG).empty
+    result = score_stations_for_user(data, make_rates([0.1]), USER_LAT, USER_LNG, max_distance_meters=1500)
+    assert list(result["name"]) == ["1200m"]
+
+
+def test_recommend_uses_first_radius_when_station_nearby():
+    data = make_stations(name=["300m", "1200m"], lat=[_lat_at(300), _lat_at(1200)], lng=[USER_LNG] * 2)
+    result, radius = recommend_stations(data, make_rates([0.1, 0.1]), USER_LAT, USER_LNG)
+    assert radius == SEARCH_RADII_METERS[0]
+    assert list(result["name"]) == ["300m"]  # the 1200 m station is not mixed in
+
+
+def test_recommend_widens_radius_when_nothing_nearby():
+    data = make_stations(
+        name=["Empty300m", "Full1200m", "Full2500m"],
+        lat=[_lat_at(m) for m in (300, 1200, 2500)],
+        lng=[USER_LNG] * 3,
+        bikes=[0, 5, 5],
+    )
+    result, radius = recommend_stations(data, make_rates([0.1] * 3), USER_LAT, USER_LNG)
+    assert radius == 1500
+    assert list(result["name"]) == ["Full1200m"]
+
+
+def test_recommend_uses_largest_radius():
+    data = make_stations(name=["2500m"], lat=[_lat_at(2500)], lng=[USER_LNG])
+    result, radius = recommend_stations(data, make_rates([0.1]), USER_LAT, USER_LNG)
+    assert radius == 3000
+    assert list(result["name"]) == ["2500m"]
+
+
+def test_recommend_returns_largest_radius_when_nothing_found():
+    data = make_stations(lat=[49.70], lng=[8.70])
+    result, radius = recommend_stations(data, make_rates([0.1]), USER_LAT, USER_LNG)
+    assert result.empty
+    assert radius == SEARCH_RADII_METERS[-1]
+
+
+def test_recommend_empty_input():
+    result, radius = recommend_stations(pd.DataFrame(), empty_rates, USER_LAT, USER_LNG)
+    assert result.empty
+    assert radius == SEARCH_RADII_METERS[-1]
+
+
+def test_recommend_widens_when_only_nearby_station_is_excluded():
+    data = make_stations(uid=[1, 2], lat=[_lat_at(100), _lat_at(1200)], lng=[USER_LNG] * 2)
+    result, radius = recommend_stations(data, make_rates([0.1, 0.1]), USER_LAT, USER_LNG, exclude_uid=1)
+    assert radius == 1500
+    assert list(result["uid"]) == [2]
+
+
+def test_recommend_passes_top_n():
+    data = make_stations(uid=[1, 2, 3])
+    result, _ = recommend_stations(data, make_rates([0.1] * 3), USER_LAT, USER_LNG, top_n=2)
+    assert len(result) == 2
+
+
+def test_radii_are_configurable():
+    data = make_stations(lat=[_lat_at(1200)], lng=[USER_LNG])
+    result, radius = recommend_stations(data, make_rates([0.1]), USER_LAT, USER_LNG, radii=(500, 1000))
+    assert result.empty
+    assert radius == 1000
