@@ -5,12 +5,23 @@ import RecommendationMap from "../components/RecommendationMap";
 import RecommendationCard from "../components/RecommendationCard";
 import type { Recommendation, Station, RecommendationResponse } from "../types";
 
+/** First search radius used by the backend (SEARCH_RADII_METERS[0]). */
+const DEFAULT_SEARCH_RADIUS_METERS = 800;
+
+/** 800 -> "800 m", 1500 -> "1.5 km" */
+function formatDistance(meters: number): string {
+  return meters < 1000
+    ? `${meters} m`
+    : `${(meters / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })} km`;
+}
+
 function PredictionPage() {
   const geo = useGeolocation();
   const { data: stationsData } = useFetch<Station[]>("http://localhost:8000/stations");
 
   // Recommendation state
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [searchRadius, setSearchRadius] = useState<number | null>(null);
   const [recLoading, setRecLoading] = useState(false);
   const [gpsMode, setGpsMode] = useState(true);
   const [selectedStationUid, setSelectedStationUid] = useState<number | null>(null);
@@ -26,8 +37,12 @@ function PredictionPage() {
       .then((res) => res.json())
       .then((data: RecommendationResponse) => {
         setRecommendations(data.recommendations || []);
+        setSearchRadius(data.search_radius_meters ?? null);
       })
-      .catch(() => setRecommendations([]))
+      .catch(() => {
+        setRecommendations([]);
+        setSearchRadius(null);
+      })
       .finally(() => setRecLoading(false));
   }, []);
 
@@ -109,19 +124,30 @@ function PredictionPage() {
             ))}
           </div>
         ) : recommendations.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-4">
-            {recommendations.map((rec) => (
-              <RecommendationCard
-                key={rec.uid}
-                recommendation={rec}
-              />
-            ))}
-          </div>
+          <>
+            {searchRadius !== null && searchRadius > DEFAULT_SEARCH_RADIUS_METERS && (
+              <p className="mt-4 flex items-center gap-2 text-xs text-yellow-400 bg-yellow-400/10 px-3 py-2 rounded-lg">
+                <span className="inline-block h-2 w-2 shrink-0 rounded-full bg-yellow-400" />
+                No station with bikes within {formatDistance(DEFAULT_SEARCH_RADIUS_METERS)} – showing
+                stations up to {formatDistance(searchRadius)} away.
+              </p>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-4">
+              {recommendations.map((rec) => (
+                <RecommendationCard
+                  key={rec.uid}
+                  recommendation={rec}
+                />
+              ))}
+            </div>
+          </>
         ) : !geo.loading ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-700 bg-gray-800/50 py-16 px-8 mt-4">
             <p className="text-sm text-gray-400 text-center max-w-md">
               {gpsMode
-                ? "No recommendations available for your location."
+                ? searchRadius !== null
+                  ? `No stations with bikes within ${formatDistance(searchRadius)} of your location.`
+                  : "No recommendations available for your location."
                 : "Click on any station on the map above to see recommended alternatives."}
             </p>
           </div>

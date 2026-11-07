@@ -42,4 +42,6 @@ export interface KpiSnapshot {
 /** Shape of the /recommendations response. */
 export interface RecommendationResponse {
   recommendations: Recommendation[];
+  /** Radius (m) actually searched; > 800 when the search had to be widened. */
+  search_radius_meters: number;
 }
