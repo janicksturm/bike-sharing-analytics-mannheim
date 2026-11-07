@@ -6,7 +6,7 @@ from src.nextbike_prediction.models.metrics import (
     get_latest_station_data,
     get_station_empty_rates,
 )
-from src.nextbike_prediction.models.recommendations import score_stations_for_user
+from src.nextbike_prediction.models.recommendations import recommend_stations
 
 class RecommendationService:
     """Service class for station recommendations based on user location."""
@@ -21,7 +21,7 @@ class RecommendationService:
         # falling back to the overall rate where the slot has too few observations
         empty_rates = get_station_empty_rates(self.db, reference_time=get_latest_snapshot(self.db))
 
-        scored = score_stations_for_user(
+        scored, search_radius = recommend_stations(
             latest_data,
             empty_rates,
             user_lat=lat,
@@ -47,4 +47,7 @@ class RecommendationService:
                 "recommendation_score": round(float(row["recommendation_score"]), 4),
             })
 
-        return {"recommendations": recommendations}
+        return {
+            "recommendations": recommendations,
+            "search_radius_meters": search_radius,
+        }

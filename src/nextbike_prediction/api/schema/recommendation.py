@@ -18,3 +18,4 @@ class RecommendationItem(BaseModel):
 
 class RecommendationResponse(BaseModel):
     recommendations: list[RecommendationItem]
+    search_radius_meters: int

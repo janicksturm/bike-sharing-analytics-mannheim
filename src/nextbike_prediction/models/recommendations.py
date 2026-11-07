@@ -13,7 +13,7 @@ DISTANCE_DECAY_METERS = 800
 EMPTY_RATE_DECAY = 4
 TREND_SCALE_BIKES = 3
 
-MAX_DISTANCE_METERS = 800
+SEARCH_METERS = (800, 1500, 3000)
 MIN_BIKES = 1
 
 
@@ -25,8 +25,16 @@ def trend_score(demand: pd.Series) -> pd.Series:
     return 0.5 + 0.5 * np.tanh(demand.fillna(0) / TREND_SCALE_BIKES)
 
 
-def score_stations_for_user(latest_data: pd.DataFrame, empty_rates: pd.DataFrame, user_lat: float, user_lng: float, top_n: int = 5, exclude_uid: int | None = None) -> pd.DataFrame:
-    """Rank all stations relative to the user's GPS position.
+def score_stations_for_user(
+    latest_data: pd.DataFrame,
+    empty_rates: pd.DataFrame,
+    user_lat: float,
+    user_lng: float,
+    top_n: int = 5,
+    exclude_uid: int | None = None,
+    max_distance_meters: float = SEARCH_METERS[0],
+) -> pd.DataFrame:
+    """Rank stations within max_distance_meters of the user's GPS position.
 
     The recommendation score combines:
     - Current bike availability (higher = better)
@@ -56,7 +64,7 @@ def score_stations_for_user(latest_data: pd.DataFrame, empty_rates: pd.DataFrame
     # Only consider nearby stations that currently have bikes
     candidates = candidates[
         (candidates["bikes"] >= MIN_BIKES)
-        & (candidates["distance_meters"] <= MAX_DISTANCE_METERS)
+        & (candidates["distance_meters"] <= max_distance_meters)
     ].copy()
 
     if candidates.empty:
@@ -79,3 +87,27 @@ def score_stations_for_user(latest_data: pd.DataFrame, empty_rates: pd.DataFrame
 
     candidates = candidates.sort_values("recommendation_score", ascending=False)
     return candidates.head(top_n).reset_index(drop=True)
+
+
+def recommend_stations(
+    latest_data: pd.DataFrame,
+    empty_rates: pd.DataFrame,
+    user_lat: float,
+    user_lng: float,
+    top_n: int = 5,
+    exclude_uid: int | None = None,
+    radii: tuple[int, ...] = SEARCH_METERS,
+) -> tuple[pd.DataFrame, int]:
+    """Score stations, widening the search radius until at least one qualifies.
+
+    Returns (ranked stations, radius used). If no radius yields a result,
+    the ranked frame is empty and the largest radius is returned.
+    """
+    for radius in radii:
+        scored = score_stations_for_user(
+            latest_data, empty_rates, user_lat, user_lng,
+            top_n=top_n, exclude_uid=exclude_uid, max_distance_meters=radius,
+        )
+        if not scored.empty:
+            return scored, radius
+    return pd.DataFrame(), radii[-1]
