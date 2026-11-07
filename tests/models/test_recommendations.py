@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from script.models.recommendations import score_stations_for_user, _normalize
+from src.nextbike_prediction.models.recommendations import score_stations_for_user, _normalize
 
 latest_data = pd.DataFrame({
     "uid": [1, 2, 3, 4, 5, 6],
@@ -20,6 +20,30 @@ empty_rates = pd.DataFrame({
 USER_LAT = 49.4875
 USER_LNG = 8.4660
 
+# One degree of latitude is ~111 195 m (haversine with R = 6 371 000 m).
+METERS_PER_DEG_LAT = 111_195
+
+
+def make_stations(**columns) -> pd.DataFrame:
+    """Build station data; unspecified columns default to same spot / 10 bikes / no trend."""
+    n = len(next(iter(columns.values())))
+    defaults = {
+        "uid": list(range(1, n + 1)),
+        "name": [f"S{i}" for i in range(1, n + 1)],
+        "lat": [49.488] * n,
+        "lng": [8.466] * n,
+        "bikes": [10] * n,
+        "demand_score": [0] * n,
+    }
+    defaults.update(columns)
+    return pd.DataFrame(defaults)
+
+
+def make_rates(values: list[float]) -> pd.DataFrame:
+    return pd.DataFrame({"uid": list(range(1, len(values) + 1)), "empty_rate": values})
+
+
+# ── _normalize ───────────────────────────────────────────────────────
 
 def test_normalize_maps_min_max():
     result = _normalize(pd.Series([0, 50, 100]))
@@ -27,10 +51,18 @@ def test_normalize_maps_min_max():
     assert result.iloc[1] == pytest.approx(0.5)
     assert result.iloc[2] == pytest.approx(1.0)
 
+
 def test_normalize_equal_values():
     result = _normalize(pd.Series([7, 7, 7]))
     assert (result == 0.5).all()
 
+
+def test_normalize_keeps_index():
+    series = pd.Series([1, 2], index=[10, 20])
+    assert list(_normalize(series).index) == [10, 20]
+
+
+# ── Filtering ────────────────────────────────────────────────────────
 
 def test_stations_without_bikes_filtered():
     result = score_stations_for_user(latest_data, empty_rates, USER_LAT, USER_LNG)
@@ -41,18 +73,76 @@ def test_stations_without_bikes_filtered():
 
 def test_stations_beyond_800m_filtered():
     """Stations farther than 800 m from the user must be excluded."""
-    data = pd.DataFrame({
-        "uid": [1, 2],
-        "name": ["Nearby", "TooFar"],
-        "lat": [49.4880, 49.520],
-        "lng": [8.4665, 8.500],
-        "bikes": [5, 5],
-        "demand_score": [0, 0],
-    })
-    rates = pd.DataFrame({"uid": [1, 2], "empty_rate": [0.1, 0.1]})
-    result = score_stations_for_user(data, rates, USER_LAT, USER_LNG)
+    data = make_stations(name=["Nearby", "TooFar"], lat=[49.4880, 49.520], lng=[8.4665, 8.500])
+    result = score_stations_for_user(data, make_rates([0.1, 0.1]), USER_LAT, USER_LNG)
     assert "TooFar" not in result["name"].values
     assert "Nearby" in result["name"].values
+
+
+def test_distance_boundary_around_800m():
+    data = make_stations(
+        name=["790m", "810m"],
+        lat=[USER_LAT + 790 / METERS_PER_DEG_LAT, USER_LAT + 810 / METERS_PER_DEG_LAT],
+        lng=[USER_LNG, USER_LNG],
+    )
+    result = score_stations_for_user(data, make_rates([0.1, 0.1]), USER_LAT, USER_LNG)
+    assert list(result["name"]) == ["790m"]
+    assert result.iloc[0]["distance_meters"] == pytest.approx(790, abs=1)
+
+
+def test_exclude_uid():
+    result = score_stations_for_user(latest_data, empty_rates, USER_LAT, USER_LNG, exclude_uid=2)
+    assert 2 not in result["uid"].values
+    assert len(result) == 3  # 4 stations with bikes minus the excluded one
+
+
+def test_no_station_with_bikes_returns_empty():
+    data = make_stations(bikes=[0, 0])
+    result = score_stations_for_user(data, make_rates([0.1, 0.1]), USER_LAT, USER_LNG)
+    assert result.empty
+
+
+def test_all_stations_out_of_range_returns_empty():
+    data = make_stations(lat=[49.60, 49.61])
+    result = score_stations_for_user(data, make_rates([0.1, 0.1]), USER_LAT, USER_LNG)
+    assert result.empty
+
+
+def test_empty_input():
+    result = score_stations_for_user(pd.DataFrame(), empty_rates, USER_LAT, USER_LNG)
+    assert result.empty
+
+
+# ── Missing data handling ────────────────────────────────────────────
+
+def test_missing_empty_rate_gets_median():
+    data = make_stations(uid=[1, 2, 3])
+    rates = pd.DataFrame({"uid": [1, 2], "empty_rate": [0.1, 0.5]})
+    result = score_stations_for_user(data, rates, USER_LAT, USER_LNG)
+    assert result.set_index("uid").loc[3, "empty_rate"] == pytest.approx(0.3)
+
+
+def test_no_empty_rates_at_all_falls_back_to_zero():
+    data = make_stations(uid=[1, 2])
+    rates = pd.DataFrame(columns=["uid", "empty_rate"]).astype({"uid": int, "empty_rate": float})
+    result = score_stations_for_user(data, rates, USER_LAT, USER_LNG)
+    assert (result["empty_rate"] == 0).all()
+
+
+def test_nan_demand_score_treated_as_zero():
+    data = make_stations(demand_score=[None, 0, 2])
+    result = score_stations_for_user(data, make_rates([0.1] * 3), USER_LAT, USER_LNG)
+    by_uid = result.set_index("uid")
+    assert by_uid.loc[1, "demand_trend"] == 0
+    assert by_uid.loc[1, "recommendation_score"] == pytest.approx(by_uid.loc[2, "recommendation_score"])
+
+
+def test_input_frames_not_mutated():
+    data = latest_data.copy()
+    rates = empty_rates.copy()
+    score_stations_for_user(data, rates, USER_LAT, USER_LNG)
+    pd.testing.assert_frame_equal(data, latest_data)
+    pd.testing.assert_frame_equal(rates, empty_rates)
 
 
 # ── Sorting & top-n ──────────────────────────────────────────────────
@@ -67,10 +157,18 @@ def test_top_n():
     assert len(result) == 2
 
 
-def test_empty_input():
-    result = score_stations_for_user(pd.DataFrame(), empty_rates, USER_LAT, USER_LNG)
-    assert result.empty
+def test_default_top_n_is_five():
+    data = make_stations(uid=list(range(1, 8)))
+    result = score_stations_for_user(data, make_rates([0.1] * 7), USER_LAT, USER_LNG)
+    assert len(result) == 5
 
+
+def test_index_is_reset():
+    result = score_stations_for_user(latest_data, empty_rates, USER_LAT, USER_LNG)
+    assert list(result.index) == list(range(len(result)))
+
+
+# ── Score values ─────────────────────────────────────────────────────
 
 def test_score_between_0_and_1():
     result = score_stations_for_user(latest_data, empty_rates, USER_LAT, USER_LNG)
@@ -78,46 +176,70 @@ def test_score_between_0_and_1():
     assert (result["recommendation_score"] <= 1).all()
 
 
+def test_known_score_for_single_station():
+    """Pins the formula/weights: bikes=8, distance=0, empty_rate=0, single station.
+
+    0.25 * (1 - e^-1)   bikes
+    + 0.10 * e^0        reliability
+    + 0.40 * e^0        distance
+    + 0.25 * 0.5        trend (single value -> neutral 0.5)
+    = 0.783030...
+    """
+    data = make_stations(lat=[USER_LAT], lng=[USER_LNG], bikes=[8])
+    result = score_stations_for_user(data, make_rates([0.0]), USER_LAT, USER_LNG)
+    assert result.iloc[0]["recommendation_score"] == pytest.approx(0.783030, abs=1e-6)
+
+
 def test_more_bikes_scores_higher():
-    data = pd.DataFrame({
-        "uid": [1, 2], "name": ["Many", "Few"],
-        "lat": [49.488, 49.488], "lng": [8.466, 8.466],
-        "bikes": [20, 3], "demand_score": [0, 0],
-    })
-    rates = pd.DataFrame({"uid": [1, 2], "empty_rate": [0.1, 0.1]})
-    result = score_stations_for_user(data, rates, USER_LAT, USER_LNG)
+    data = make_stations(name=["Many", "Few"], bikes=[20, 3])
+    result = score_stations_for_user(data, make_rates([0.1, 0.1]), USER_LAT, USER_LNG)
     assert result.iloc[0]["name"] == "Many"
 
 
 def test_closer_station_scores_higher():
-    data = pd.DataFrame({
-        "uid": [1, 2], "name": ["Close", "FartherButInRange"],
-        "lat": [49.4878, 49.4920], "lng": [8.4662, 8.4700],
-        "bikes": [10, 10], "demand_score": [0, 0],
-    })
-    rates = pd.DataFrame({"uid": [1, 2], "empty_rate": [0.1, 0.1]})
-    result = score_stations_for_user(data, rates, USER_LAT, USER_LNG)
+    data = make_stations(
+        name=["Close", "FartherButInRange"], lat=[49.4878, 49.4920], lng=[8.4662, 8.4700]
+    )
+    result = score_stations_for_user(data, make_rates([0.1, 0.1]), USER_LAT, USER_LNG)
     assert len(result) == 2
     assert result.iloc[0]["name"] == "Close"
 
 
 def test_lower_empty_rate_scores_higher():
-    data = pd.DataFrame({
-        "uid": [1, 2], "name": ["Reliable", "Unreliable"],
-        "lat": [49.488, 49.488], "lng": [8.466, 8.466],
-        "bikes": [10, 10], "demand_score": [0, 0],
-    })
-    rates = pd.DataFrame({"uid": [1, 2], "empty_rate": [0.05, 0.90]})
-    result = score_stations_for_user(data, rates, USER_LAT, USER_LNG)
+    data = make_stations(name=["Reliable", "Unreliable"])
+    result = score_stations_for_user(data, make_rates([0.05, 0.90]), USER_LAT, USER_LNG)
     assert result.iloc[0]["name"] == "Reliable"
 
 
 def test_positive_trend_scores_higher():
-    data = pd.DataFrame({
-        "uid": [1, 2], "name": ["Returning", "Leaving"],
-        "lat": [49.488, 49.488], "lng": [8.466, 8.466],
-        "bikes": [10, 10], "demand_score": [-3, 3],
-    })
-    rates = pd.DataFrame({"uid": [1, 2], "empty_rate": [0.1, 0.1]})
-    result = score_stations_for_user(data, rates, USER_LAT, USER_LNG)
+    # demand_score = curr - prev bikes: positive means bikes are being returned
+    data = make_stations(name=["Returning", "Leaving"], demand_score=[3, -3])
+    result = score_stations_for_user(data, make_rates([0.1, 0.1]), USER_LAT, USER_LNG)
     assert result.iloc[0]["name"] == "Returning"
+
+
+# ── Known weaknesses of the current formula (documented, expected to fail) ──
+
+@pytest.mark.xfail(strict=True, reason=(
+    "Trend is min-max normalized, so a +1 bike delta gives the full 0.25 trend weight "
+    "and outweighs a 19-bike difference in availability."
+))
+def test_small_trend_does_not_outweigh_large_availability_gap():
+    data = make_stations(name=["OneBikeRising", "TwentyBikes"], bikes=[1, 20], demand_score=[1, 0])
+    result = score_stations_for_user(data, make_rates([0.1, 0.1]), USER_LAT, USER_LNG)
+    assert result.iloc[0]["name"] == "TwentyBikes"
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "Min-max normalized trend: a +1 bike delta beats a station at the user's "
+    "location vs. one 700 m away with equal bikes."
+))
+def test_small_trend_does_not_outweigh_700m_walk():
+    data = make_stations(
+        name=["Here", "700mRising"],
+        lat=[USER_LAT, USER_LAT + 700 / METERS_PER_DEG_LAT],
+        lng=[USER_LNG, USER_LNG],
+        demand_score=[0, 1],
+    )
+    result = score_stations_for_user(data, make_rates([0.1, 0.1]), USER_LAT, USER_LNG)
+    assert result.iloc[0]["name"] == "Here"
