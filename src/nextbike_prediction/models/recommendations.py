@@ -3,17 +3,26 @@ import pandas as pd
 from .utils import haversine
 
 
-def _normalize(series: pd.Series) -> pd.Series:
-    """Min-max normalize a Series to [0, 1].
+WEIGHT_BIKES = 0.25
+WEIGHT_RELIABILITY = 0.10
+WEIGHT_DISTANCE = 0.40
+WEIGHT_TREND = 0.25
 
-    When all values are equal (max == min), returns 0.5 for every entry
-    so that the factor contributes a neutral middle value.
+BIKE_SATURATION = 8
+DISTANCE_DECAY_METERS = 800
+EMPTY_RATE_DECAY = 4
+TREND_SCALE_BIKES = 3
+
+MAX_DISTANCE_METERS = 800
+MIN_BIKES = 1
+
+
+def trend_score(demand: pd.Series) -> pd.Series:
+    """Map a bike delta to [0, 1] on a fixed scale; 0 or unknown -> 0.5 (neutral).
+
+    Independent of the other candidates, unlike min-max normalization.
     """
-    min_val = series.min()
-    max_val = series.max()
-    if max_val == min_val:
-        return pd.Series(0.5, index=series.index)
-    return (series - min_val) / (max_val - min_val)
+    return 0.5 + 0.5 * np.tanh(demand.fillna(0) / TREND_SCALE_BIKES)
 
 
 def score_stations_for_user(latest_data: pd.DataFrame, empty_rates: pd.DataFrame, user_lat: float, user_lng: float, top_n: int = 5, exclude_uid: int | None = None) -> pd.DataFrame:
@@ -44,12 +53,11 @@ def score_stations_for_user(latest_data: pd.DataFrame, empty_rates: pd.DataFrame
         axis=1,
     )
 
-    # Only consider stations that currently have at least 1 bike
-    candidates = candidates[candidates["bikes"] >= 1].copy()
-
-    MAXIMALE_DISTANCE_METERS = 800
-    candidates = candidates[candidates["distance_meters"] <= MAXIMALE_DISTANCE_METERS]
-
+    # Only consider nearby stations that currently have bikes
+    candidates = candidates[
+        (candidates["bikes"] >= MIN_BIKES)
+        & (candidates["distance_meters"] <= MAX_DISTANCE_METERS)
+    ].copy()
 
     if candidates.empty:
         return pd.DataFrame()
@@ -57,28 +65,16 @@ def score_stations_for_user(latest_data: pd.DataFrame, empty_rates: pd.DataFrame
     # demand_score is the bike delta (curr - prev): positive = bikes returning = good
     candidates["demand_trend"] = candidates["demand_score"].fillna(0)
 
-    # Normalize all factors to [0, 1] so weights reflect true importance
-    # Weights: bikes 35%, reliability 25%, proximity 25%, trend 15%
-    # candidates["recommendation_score"] = (
-    #     _normalize(candidates["bikes"]) * 0.20
-    #     + (1 - _normalize(candidates["empty_rate"])) * 0.25
-    #     + (1 - _normalize(candidates["distance_meters"])) * 0.40
-    #     + _normalize(candidates["demand_trend"]) * 0.15
-    # )
-    bike_score = 1 - np.exp(-candidates["bikes"] / 8)
-    distance_score = np.exp(-candidates["distance_meters"] / 800)
-    empty_score = np.exp(-4 * candidates["empty_rate"])
-    trend_score = _normalize(candidates["demand_trend"])
+    bike_score = 1 - np.exp(-candidates["bikes"] / BIKE_SATURATION)
+    distance_score = np.exp(-candidates["distance_meters"] / DISTANCE_DECAY_METERS)
+    reliability_score = np.exp(-EMPTY_RATE_DECAY * candidates["empty_rate"])
 
     candidates["recommendation_score"] = (
-        0.25 * bike_score
-        + 0.10 * empty_score
-        + 0.40 * distance_score
-        + 0.25 * trend_score
+        WEIGHT_BIKES * bike_score
+        + WEIGHT_RELIABILITY * reliability_score
+        + WEIGHT_DISTANCE * distance_score
+        + WEIGHT_TREND * trend_score(candidates["demand_trend"])
     )
 
     candidates = candidates.sort_values("recommendation_score", ascending=False)
-
-    #print(candidates.head(15)[["name", "bikes", "recommendation_score"]])
-
     return candidates.head(top_n).reset_index(drop=True)

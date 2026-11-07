@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from src.nextbike_prediction.models.recommendations import score_stations_for_user, _normalize
+from src.nextbike_prediction.models.recommendations import score_stations_for_user, trend_score
 
 latest_data = pd.DataFrame({
     "uid": [1, 2, 3, 4, 5, 6],
@@ -43,23 +43,32 @@ def make_rates(values: list[float]) -> pd.DataFrame:
     return pd.DataFrame({"uid": list(range(1, len(values) + 1)), "empty_rate": values})
 
 
-# ── _normalize ───────────────────────────────────────────────────────
+# ── trend_score ──────────────────────────────────────────────────────
 
-def test_normalize_maps_min_max():
-    result = _normalize(pd.Series([0, 50, 100]))
-    assert result.iloc[0] == pytest.approx(0.0)
-    assert result.iloc[1] == pytest.approx(0.5)
-    assert result.iloc[2] == pytest.approx(1.0)
+def test_trend_score_neutral_for_zero_and_unknown():
+    assert trend_score(pd.Series([0, None])).tolist() == pytest.approx([0.5, 0.5])
 
 
-def test_normalize_equal_values():
-    result = _normalize(pd.Series([7, 7, 7]))
-    assert (result == 0.5).all()
+def test_trend_score_bounded_and_monotonic():
+    result = trend_score(pd.Series([-100, -1, 0, 1, 100]))
+    assert result.is_monotonic_increasing
+    assert result.iloc[0] == pytest.approx(0.0, abs=1e-6)
+    assert result.iloc[-1] == pytest.approx(1.0, abs=1e-6)
 
 
-def test_normalize_keeps_index():
-    series = pd.Series([1, 2], index=[10, 20])
-    assert list(_normalize(series).index) == [10, 20]
+def test_trend_score_independent_of_other_stations():
+    alone = trend_score(pd.Series([1])).iloc[0]
+    with_others = trend_score(pd.Series([1, 0, -5])).iloc[0]
+    assert alone == pytest.approx(with_others)
+
+
+def test_one_bike_delta_has_small_effect():
+    # +1 bike may shift the trend score by at most ~0.17 (of 1.0)
+    assert trend_score(pd.Series([1])).iloc[0] - 0.5 < 0.17
+
+
+def test_trend_score_keeps_index():
+    assert list(trend_score(pd.Series([1, 2], index=[10, 20])).index) == [10, 20]
 
 
 # ── Filtering ────────────────────────────────────────────────────────
@@ -218,22 +227,14 @@ def test_positive_trend_scores_higher():
     assert result.iloc[0]["name"] == "Returning"
 
 
-# ── Known weaknesses of the current formula (documented, expected to fail) ──
+# ── Trend must not dominate availability or distance (issue #10) ────
 
-@pytest.mark.xfail(strict=True, reason=(
-    "Trend is min-max normalized, so a +1 bike delta gives the full 0.25 trend weight "
-    "and outweighs a 19-bike difference in availability."
-))
 def test_small_trend_does_not_outweigh_large_availability_gap():
     data = make_stations(name=["OneBikeRising", "TwentyBikes"], bikes=[1, 20], demand_score=[1, 0])
     result = score_stations_for_user(data, make_rates([0.1, 0.1]), USER_LAT, USER_LNG)
     assert result.iloc[0]["name"] == "TwentyBikes"
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "Min-max normalized trend: a +1 bike delta beats a station at the user's "
-    "location vs. one 700 m away with equal bikes."
-))
 def test_small_trend_does_not_outweigh_700m_walk():
     data = make_stations(
         name=["Here", "700mRising"],
