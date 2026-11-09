@@ -1,9 +1,9 @@
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import case, select, func
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
-from src.nextbike_prediction.models.metrics import calculate_empty_rate, get_latest_snapshot, get_previous_snapshot, get_total_bikes, get_avg_occupancy
+from src.nextbike_prediction.models.metrics import calculate_empty_rate, get_latest_snapshot, get_previous_snapshot, get_total_bikes, get_avg_occupancy, occupancy_pct_expr
 from src.nextbike_prediction.api.schema.station import StationResponse
 from src.nextbike_prediction.api.schema.status import StatusResponse
 from src.nextbike_prediction.api.schema.recommendation import RecommendationResponse
@@ -73,14 +73,7 @@ def get_stations(db: Session = Depends(get_db)):
             Station.bike_racks,
             StationStatus.bikes,
             StationStatus.free_racks,
-            case(
-                (
-                    StationStatus.bikes + StationStatus.free_racks > 0,
-                    StationStatus.bikes * 100.0
-                    / (StationStatus.bikes + StationStatus.free_racks),
-                ),
-                else_=None,
-            ).label("occupancy_pct"),
+            occupancy_pct_expr().label("occupancy_pct"),
         )
         .outerjoin(
             StationStatus,
