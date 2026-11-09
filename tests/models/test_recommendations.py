@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 
 from src.nextbike_prediction.models.recommendations import (
-    SEARCH_RADII_METERS,
+    SEARCH_METERS,
     recommend_stations,
     score_stations_for_user,
     trend_score,
@@ -267,7 +267,7 @@ def test_max_distance_is_configurable():
 def test_recommend_uses_first_radius_when_station_nearby():
     data = make_stations(name=["300m", "1200m"], lat=[_lat_at(300), _lat_at(1200)], lng=[USER_LNG] * 2)
     result, radius = recommend_stations(data, make_rates([0.1, 0.1]), USER_LAT, USER_LNG)
-    assert radius == SEARCH_RADII_METERS[0]
+    assert radius == SEARCH_METERS[0]
     assert list(result["name"]) == ["300m"]  # the 1200 m station is not mixed in
 
 
@@ -294,13 +294,13 @@ def test_recommend_returns_largest_radius_when_nothing_found():
     data = make_stations(lat=[49.70], lng=[8.70])
     result, radius = recommend_stations(data, make_rates([0.1]), USER_LAT, USER_LNG)
     assert result.empty
-    assert radius == SEARCH_RADII_METERS[-1]
+    assert radius == SEARCH_METERS[-1]
 
 
 def test_recommend_empty_input():
     result, radius = recommend_stations(pd.DataFrame(), empty_rates, USER_LAT, USER_LNG)
     assert result.empty
-    assert radius == SEARCH_RADII_METERS[-1]
+    assert radius == SEARCH_METERS[-1]
 
 
 def test_recommend_widens_when_only_nearby_station_is_excluded():
