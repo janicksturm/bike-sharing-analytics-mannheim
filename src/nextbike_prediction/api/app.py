@@ -36,12 +36,15 @@ def get_latest_station_status(db:Session = Depends(get_db)):
     result = {}
 
     latest_ts = get_latest_snapshot(db)
+    if latest_ts is None:
+        raise HTTPException(status_code=404, detail="No station status data available.")
+
     result["snapshot_time"] = latest_ts
     result["total_bikes"] = get_total_bikes(db, latest_ts)
     result["empty_stations"] = calculate_empty_rate(db, latest_ts)
     result["avg_occupancy"] = get_avg_occupancy(db, latest_ts)
 
-    prev_ts = get_previous_snapshot(db, latest_ts) if latest_ts else None
+    prev_ts = get_previous_snapshot(db, latest_ts)
     if prev_ts is not None:
         prev_bikes = get_total_bikes(db, prev_ts)
         prev_empty = calculate_empty_rate(db, prev_ts)
