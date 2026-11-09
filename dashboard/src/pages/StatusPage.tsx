@@ -6,17 +6,6 @@ import type { KpiSnapshot, Station } from "../types";
 
 const REFRESH_INTERVAL_MS = 30_000; // 30 seconds
 
-function formatSnapshotTime(iso: string): string {
-  const date = new Date(iso);
-  return date.toLocaleString("de-DE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
 function StatusPage() {
   const { data, loading, error } = useFetch<KpiSnapshot>(
     "http://localhost:8000/status",
@@ -30,14 +19,7 @@ function StatusPage() {
   return (
     <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-white">Status</h2>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {data
-              ? `Snapshot: ${formatSnapshotTime(data.snapshot_time)}`
-              : "Fetching latest snapshot…"}
-          </p>
-        </div>
+        <h2 className="text-lg font-semibold text-white">Status</h2>
 
         {loading && !data && (
           <span className="flex items-center gap-2 text-xs text-emerald-400">
