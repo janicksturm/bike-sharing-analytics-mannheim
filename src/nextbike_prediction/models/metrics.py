@@ -19,6 +19,20 @@ TREND_WINDOW_MAX = timedelta(minutes=90)
 MIN_SLOT_OBSERVATIONS = 4
 
 
+def occupancy_pct_expr():
+    """SQL expression for a station's occupancy in percent:
+    bikes / (bikes + free_racks) * 100, or NULL when the station has neither
+    bikes nor free racks (so it is ignored by AVG).
+
+    Single source of truth for the occupancy formula.
+    """
+    return case(
+        (StationStatus.bikes + StationStatus.free_racks > 0,
+         StationStatus.bikes * 100.0 / (StationStatus.bikes + StationStatus.free_racks)),
+        else_=None,
+    )
+
+
 def compute_station_metrics(db: Session):
     """Compute metrics for each station based on historical data.
 
@@ -33,13 +47,7 @@ def compute_station_metrics(db: Session):
         select(
             StationStatus.uid,
             func.avg(StationStatus.bikes).label("avg_bikes"),
-            func.avg(
-                case(
-                    (StationStatus.bikes + StationStatus.free_racks > 0,
-                     StationStatus.bikes * 100.0 / (StationStatus.bikes + StationStatus.free_racks)),
-                    else_=None,
-                )
-            ).label("avg_occupancy"),
+            func.avg(occupancy_pct_expr()).label("avg_occupancy"),
             func.avg(case((StationStatus.bikes == 0, 1.0), else_=0.0)).label("empty_rate"),
         )
         .where(StationStatus.timestamp <= latest_ts)
@@ -99,31 +107,13 @@ def get_total_bikes(db: Session, snapshot_time: datetime):
     )
 
 def get_avg_occupancy(db: Session, snapshot_time: datetime):
-    """Return the average occupancy rate across all stations at the latest snapshot."""
-    return db.scalar(
-        select(
-            func.avg(
-                StationStatus.bikes * 100.0
-                / (StationStatus.bikes + Station.bike_racks)
-            )
-        )
-        .join(Station, Station.uid == StationStatus.uid)
-        .where(
-            StationStatus.timestamp == snapshot_time,
-            StationStatus.bikes + Station.bike_racks > 0
-        )
-    )
+    """Return the average occupancy rate (%) across all stations at snapshot_time.
 
-def get_total_capacity(db: Session, snapshot_time: datetime):
-    """Return the total capacity (bikes + free racks) across all stations at the latest snapshot."""
+    Stations with neither bikes nor free racks are excluded (their occupancy is NULL).
+    """
     return db.scalar(
-        select(
-            func.sum(StationStatus.bikes + Station.bike_racks)
-        )
-        .join(Station, Station.uid == StationStatus.uid)
-        .where(
-            StationStatus.timestamp == snapshot_time
-        )
+        select(func.avg(occupancy_pct_expr()))
+        .where(StationStatus.timestamp == snapshot_time)
     )
 
 def get_station_status(db: Session, snapshot_time: datetime):
@@ -215,11 +205,7 @@ def get_latest_station_data(db: Session) -> pd.DataFrame:
             Station.lng,
             StationStatus.bikes,
             StationStatus.free_racks,
-            case(
-                (StationStatus.bikes + StationStatus.free_racks > 0,
-                 StationStatus.bikes * 100.0 / (StationStatus.bikes + StationStatus.free_racks)),
-                else_=None,
-            ).label("occupancy_pct"),
+            occupancy_pct_expr().label("occupancy_pct"),
         )
         .join(Station, Station.uid == StationStatus.uid)
         .where(StationStatus.timestamp == latest_ts)
