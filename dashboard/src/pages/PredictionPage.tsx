@@ -5,7 +5,7 @@ import RecommendationMap from "../components/RecommendationMap";
 import RecommendationCard from "../components/RecommendationCard";
 import type { Recommendation, Station, RecommendationResponse } from "../types";
 
-/** First search radius used by the backend (SEARCH_RADII_METERS[0]). */
+/** First search radius used by the backend (SEARCH_METERS[0]). */
 const DEFAULT_SEARCH_RADIUS_METERS = 800;
 
 /** 800 -> "800 m", 1500 -> "1.5 km" */
