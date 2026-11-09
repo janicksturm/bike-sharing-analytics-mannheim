@@ -5,7 +5,7 @@ import pytest
 
 from src.nextbike_prediction.api.schema.recommendation import RecommendationResponse
 from src.nextbike_prediction.database.models.station_status import StationStatus
-from src.nextbike_prediction.models.recommendations import SEARCH_RADII_METERS
+from src.nextbike_prediction.models.recommendations import SEARCH_METERS
 from src.nextbike_prediction.services.recommendation_service import RecommendationService
 from tests.conftest import T1
 
@@ -54,7 +54,7 @@ def test_exclude_uid(seeded_db):
 
 
 def test_search_radius_default(seeded_db):
-    assert recommend(seeded_db)["search_radius_meters"] == SEARCH_RADII_METERS[0]
+    assert recommend(seeded_db)["search_radius_meters"] == SEARCH_METERS[0]
 
 
 def test_search_radius_widens(seeded_db):
@@ -69,7 +69,7 @@ def test_search_radius_widens(seeded_db):
 def test_empty_database(db_session):
     assert recommend(db_session) == {
         "recommendations": [],
-        "search_radius_meters": SEARCH_RADII_METERS[-1],
+        "search_radius_meters": SEARCH_METERS[-1],
     }
 
 
