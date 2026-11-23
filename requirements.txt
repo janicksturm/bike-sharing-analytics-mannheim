@@ -1,9 +1,0 @@
-requests
-pandas
-pyarrow
-fastparquet
-fastapi
-uvicorn[standard]
-duckdb
-sqlalchemy
-psycopg[binary]
