@@ -12,23 +12,14 @@ interface GeolocationState {
  * Requests geolocation permission on mount and returns the current position.
  */
 function useGeolocation(): GeolocationState {
-  const [state, setState] = useState<GeolocationState>({
-    lat: null,
-    lng: null,
-    loading: true,
-    error: null,
-  });
+  const [state, setState] = useState<GeolocationState>(() =>
+    navigator.geolocation
+      ? { lat: null, lng: null, loading: true, error: null }
+      : { lat: null, lng: null, loading: false, error: "Geolocation is not supported." },
+  );
 
   useEffect(() => {
-    if (!navigator.geolocation) {
-      setState({
-        lat: null,
-        lng: null,
-        loading: false,
-        error: "Geolocation is not supported.",
-      });
-      return;
-    }
+    if (!navigator.geolocation) return;
 
     navigator.geolocation.getCurrentPosition(
       (position) => {

@@ -23,13 +23,14 @@ function PredictionPage() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [searchRadius, setSearchRadius] = useState<number | null>(null);
   const [recLoading, setRecLoading] = useState(false);
-  const [gpsMode, setGpsMode] = useState(true);
+  const [gpsFetched, setGpsFetched] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
+  const gpsMode = !manualMode && !geo.error;
   const [selectedStationUid, setSelectedStationUid] = useState<number | null>(null);
 
   // Shared fetch logic: POST lat/lng → recommendations
   const fetchRecommendations = useCallback((lat: number, lng: number, exclude_uid?: number) => {
-    setRecLoading(true);
-    fetch("http://localhost:8000/recommendations", {
+    return fetch("http://localhost:8000/recommendations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ lat, lng, ...(exclude_uid != null && { exclude_uid }) }),
@@ -49,12 +50,12 @@ function PredictionPage() {
   // GPS-based recommendations
   useEffect(() => {
     if (!geo.loading && geo.lat !== null && geo.lng !== null) {
-      fetchRecommendations(geo.lat, geo.lng);
-      setGpsMode(true);
-    } else if (!geo.loading && geo.error) {
-      setGpsMode(false);
+      fetchRecommendations(geo.lat, geo.lng).finally(() => setGpsFetched(true));
     }
-  }, [geo.loading, geo.lat, geo.lng, geo.error, fetchRecommendations]);
+  }, [geo.loading, geo.lat, geo.lng, fetchRecommendations]);
+
+  // Loading while a click request runs, or while the initial GPS request is pending
+  const showLoading = recLoading || (geo.lat !== null && !gpsFetched);
 
   // Station-click handler: use clicked station's coords for recommendations
   const handleStationClick = useCallback(
@@ -63,7 +64,8 @@ function PredictionPage() {
       if (!station) return;
 
       setSelectedStationUid(uid);
-      setGpsMode(false);
+      setManualMode(true);
+      setRecLoading(true);
       fetchRecommendations(station.lat, station.lng, uid);
     },
     [stationsData, fetchRecommendations],
@@ -114,7 +116,7 @@ function PredictionPage() {
         />
 
         {/* Recommendation Cards */}
-        {recLoading ? (
+        {showLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <div

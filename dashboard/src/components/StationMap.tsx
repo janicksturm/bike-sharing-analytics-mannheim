@@ -87,7 +87,7 @@ function useMapInitialization(mapRef: React.RefObject<HTMLDivElement | null>) {
       map.remove();
       leafletMap.current = null;
     };
-  }, []);
+  }, [mapRef]);
 
   return { leafletMap, isLoaded };
 }

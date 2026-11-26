@@ -18,9 +18,6 @@ function useFetch<T>(url: string, refetchIntervalMs?: number): UseFetchResult<T>
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchData = useCallback(() => {
-    setLoading(true);
-    setError(null);
-
     fetch(url)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
